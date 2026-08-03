@@ -1,0 +1,79 @@
+household:
+  name: Illustrative Wealth OS household (planning assumptions, not financial or tax advice)
+  current_age: 54
+  spouse_age: 51
+  planned_retirement_age: 60
+  life_expectancy: 95
+employment:
+  salary: 180000
+  annual_savings: 20000
+investments:
+  cash_balance: 500000
+  etf_value: 300000
+  etf_growth_rate: 0.06
+amazon_rsus:
+  # 310 shares × USD 270 × EUR 0.92/USD ≈ EUR 77,000 opening value.
+  vested_shares: 310
+  # Future grants are sold on vest and transferred to cash; only opening shares remain held.
+  annual_grant_shares: 800
+  share_price_usd: 270
+  eur_usd_exchange_rate: 0.92
+  annual_growth_rate: 0.05
+  sell_on_vest: true
+pensions:
+  - name: Justin pension
+    owner: Justin
+    current_value: 500000
+    annual_growth_rate: 0.04
+    annual_contribution: 0
+    access_age: 60
+    annual_drawdown_rate: 0.04
+    enabled_for_drawdown: true
+  - name: Wife pension
+    owner: Wife
+    current_value: 200000
+    annual_growth_rate: 0.04
+    annual_contribution: 0
+    access_age: 60
+    annual_drawdown_rate: 0.04
+    enabled_for_drawdown: true
+rental_properties:
+  - name: Ardfield Court
+    # Planned purchase; stamp duty and legal/purchase costs are excluded in MVP v0.1.
+    purchase_year: 2027
+    purchase_price: 200000
+    current_value: 0
+    annual_net_rent: 16000
+    annual_growth_rate: 0.03
+    # Configurable planning assumption reflecting proposed joint ownership, not tax advice.
+    owners:
+      - person: Justin
+        share: 0.50
+      - person: Wife
+        share: 0.50
+assumptions:
+  start_year: 2026
+  inflation_rate: 0.02
+  target_retirement_income: 80000
+state_pensions:
+  # User-supplied planning assumptions; not verified entitlements.
+  - owner: Justin
+    enabled: true
+    start_age: 66
+    annual_amount: 15000
+    inflation_linked: true
+  - owner: Wife
+    enabled: true
+    start_age: 66
+    annual_amount: 15000
+    inflation_linked: true
+tax:
+  # Estimated Irish tax based on configured planning assumptions; not a tax return or tax advice.
+  enabled: true
+  rules_file: data/tax/ireland_2026.yaml
+  assessment_basis: joint
+  assessable_spouse: Justin
+  index_future_rules_with_inflation: true
+  reduced_usc_enabled: false
+  pension_prsi_enabled: false
+  rental_prsi_enabled: false

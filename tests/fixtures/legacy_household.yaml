@@ -1,0 +1,31 @@
+household:
+  name: Example Household
+  current_age: 40
+  spouse_age: 38
+  planned_retirement_age: 60
+  life_expectancy: 95
+employment:
+  salary: 100000
+  annual_savings: 25000
+investments:
+  cash_balance: 50000
+  etf_value: 150000
+  etf_growth_rate: 0.05
+amazon_rsus:
+  vested_shares: 100
+  annual_grant_shares: 25
+  share_price_usd: 200
+  eur_usd_exchange_rate: 1
+  annual_growth_rate: 0.05
+  sell_on_vest: true
+pensions:
+  - name: Legacy pension
+    owner: Justin
+    current_value: 200000
+    annual_growth_rate: 0.04
+    annual_contribution: 0
+rental_properties: []
+assumptions:
+  start_year: 2026
+  inflation_rate: 0.02
+  target_retirement_income: 80000

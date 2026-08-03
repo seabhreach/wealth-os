@@ -1,0 +1,17 @@
+tax_year: 2026
+income_tax:
+  standard_rate: 0.20
+  higher_rate: 0.40
+  married_standard_band: 53000
+  lower_earner_increase_cap: 35000
+  married_tax_credit: 4000
+usc:
+  exemption_threshold: 13000
+  bands:
+    - {upper_limit: 12012, rate: 0.005}
+    - {upper_limit: 28700, rate: 0.02}
+    - {upper_limit: 70044, rate: 0.03}
+    - {upper_limit: null, rate: 0.08}
+prsi:
+  enabled: false
+  rate: 0
