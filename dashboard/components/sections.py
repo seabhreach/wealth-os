@@ -1,10 +1,13 @@
 """Dashboard-specific presentation transformations and renderers."""
 
+from __future__ import annotations
+
 from decimal import Decimal
 from typing import Literal
 
 import pandas as pd  # type: ignore[import-untyped]
 import streamlit as st
+from pandas.io.formats.style import Styler  # type: ignore[import-untyped]
 
 from dashboard.components.formatting import (
     display_reconciliation_adjustment,
@@ -774,7 +777,7 @@ def render_formula_glossary() -> None:
     )
 
 
-def styled_projection_table(rows: list[dict[str, str]]) -> pd.io.formats.style.Styler:
+def styled_projection_table(rows: list[dict[str, str]]) -> Styler:
     """Use theme-compatible status-cell styling without forcing row backgrounds."""
     frame = pd.DataFrame(rows)
 

@@ -86,7 +86,8 @@ def test_submitted_configuration_and_what_if_state_survive_deferred_navigation()
 
 def test_changed_pension_contribution_submits_without_a_navigation_exception() -> None:
     """Inputs submission reruns onto Overview through pending navigation without an exception."""
-    app = AppTest.from_file("dashboard/app.py")
+    app_path = Path(__file__).resolve().parents[1] / "dashboard" / "app.py"
+    app = AppTest.from_file(str(app_path))
     app.run(timeout=30)
     app.radio[0].set_value("Inputs").run(timeout=30)
     contribution = next(
