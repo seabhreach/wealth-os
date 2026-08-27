@@ -14,15 +14,31 @@ trade-offs without pretending that a model can decide what matters to them.
 
 ## Product Model
 
-Conversation is the primary interface. Workspaces bring together the explanations,
-visualisations and strategies needed to answer the user’s current question.
+Conversation creates the Workspace. Conversation then controls and explains the Workspace.
+
+The primary experience is staged:
+
+```text
+Home
+→ Conversation
+→ Enough Information
+→ Workspace
+→ Explore through Workspace + Conversation
+```
+
+Conversation is the primary interface while Wealth OS understands the question and acquires only
+material missing information. Once sufficient information exists, the Workspace becomes the
+primary answer surface. It brings together the visualisations, explanations, comparisons, and
+strategies needed to answer the user’s current question. Conversation remains available as a
+secondary controller and explainer for that artifact.
 
 The **Financial Picture** is the persistent source of truth: the people, goals, resources,
 commitments, assumptions, confidence, and provenance that the user has reviewed. The **Financial
 Outlook** is the standard baseline future produced from that picture. The **Strategy Explorer**
 compares possible paths, assumptions, and trade-offs. **Insights** are observations grounded in
 deterministic results. **Workspaces** are question-focused answer surfaces that assemble the
-evidence needed for the current conversation.
+evidence needed for the current conversation. A Workspace is an artifact that may be saved,
+revisited, and explored further; conversation is the interaction that creates and changes it.
 
 Wealth OS does not conduct scripted interviews.
 It conducts natural conversations guided by a deterministic Discovery Model.
@@ -39,13 +55,24 @@ material to that question, and explain why it matters.
 ### Conversation is the primary interface
 
 People should be able to express uncertainty, revise a goal, ask a follow-up question, or change
-an assumption naturally. Conversation is not a decorative layer over a form.
+an assumption naturally. Conversation is not a decorative layer over a form. During initial
+discovery it should dominate the interface and feel like a natural exchange, not a visible
+questionnaire or a dashboard paired with chat.
 
 ### Workspaces are the primary answer surface
 
 An answer may need a short explanation, chart, comparison, assumption, limitation, and supporting
 table. A Workspace assembles those elements around one question instead of forcing every answer
-into a fixed dashboard.
+into a fixed dashboard. It appears when Wealth OS has enough information to show something useful,
+then normally becomes the dominant surface.
+
+### Show financial questions visually when it improves understanding
+
+Wealth OS should show financial questions visually whenever visual representation improves
+understanding. Visuals are selected because they help answer the current question, not because the
+product needs a generic dashboard. A retirement question may need a wealth trajectory and funding
+timeline; a cash question may need a cash trajectory and annual funding breakdown. The composition
+must remain evidence-backed and reproducible.
 
 ### Financial Picture is the persistent source of truth
 
@@ -62,7 +89,9 @@ additional detail would improve confidence, unlock a comparison, or change the a
 
 A question must have a clear purpose, be material to the active goal, and unlock a defined result
 or improve confidence. Known, irrelevant, or safely estimable information should not be requested
-again.
+again. Before asking anything, Wealth OS checks the existing Financial Picture. It may extract
+multiple Information Items from one natural response and asks again only when missing information
+materially affects the requested exploration.
 
 ### Strategy Explorer supports exploration, not advice
 
