@@ -25,7 +25,7 @@ task requires it.
 - `RELEASE_NOTES_v0.2.0.md`
 - `AGENTS.md`
 
-## Known Missing Post-v0.2 Work
+## Reconstructed Post-v0.2 Documentation
 
 - `docs/PRODUCT_VISION.md`
 - `docs/RFC-010_DECISION_ENGINE.md`
@@ -37,9 +37,16 @@ task requires it.
 - `docs/GOAL_LIBRARY.md`
 - `docs/QUESTION_LIBRARY.md`
 - `docs/EXPERIENCE_LIVE_DATA_CONTRACT.md`
+
+Post-v0.2 product and architecture documents were reconstructed from the project conversation
+history after loss of the development laptop. Their intent and major approved decisions have been
+restored, but exact original wording may differ.
+
+## Known Missing Post-v0.2 Implementation
+
 - `experience/`
 
-These post-v0.2 components were not present in GitHub and have not been reconstructed.
+The post-v0.2 Experience implementation was not present in GitHub and has not been reconstructed.
 
 ## Validation Results
 
