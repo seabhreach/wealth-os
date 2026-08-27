@@ -9,6 +9,8 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from experience.components.live_workspace import _evidence_groups
+from experience.display import format_display_value, format_table_value
 from experience.live.models import (
     ComparisonEvidence,
     EvidenceMode,
@@ -269,6 +271,46 @@ def test_cash_decline_is_causal_and_requires_no_data_collection() -> None:
     assert workspace.proposed_update is None
 
 
+def test_cash_decline_narrative_matches_positive_private_pension_evidence() -> None:
+    workspace = _service().cash_decline(2032)
+    answer = workspace.evidence[0]
+    statement = next(
+        item for item in workspace.evidence if isinstance(item, FinancialStatementEvidence)
+    )
+    private_pension = dict(statement.inflows)["Private pension income"]
+
+    assert private_pension > 0
+    assert isinstance(answer, NarrativeEvidence)
+    assert "private-pension income" in answer.text.casefold()
+    assert "remainder comes from cash" in answer.text.casefold()
+    assert "pensions continue to grow" not in answer.text.casefold()
+    assert "pensions are not used" not in answer.text.casefold()
+
+
+def test_live_display_formatting_hides_decimal_tails_without_mutating_evidence() -> None:
+    value = Decimal("1732584.981918750000")
+    workspace = _service().retire_earlier(58)
+    comparison = _comparison(workspace.evidence, "g001-net-worth")
+    exact = comparison.scenario_value
+
+    assert format_display_value(value, "EUR") == "€1,732,585"
+    assert format_table_value(value, "Modelled value") == "€1,732,585"
+    assert "981918750000" not in format_table_value(value, "Modelled value")
+    assert comparison.scenario_value == exact
+    assert isinstance(comparison.scenario_value, Decimal)
+
+
+def test_live_default_evidence_is_answer_first_and_dense_detail_is_secondary() -> None:
+    workspace = _service().retire_earlier(58)
+    primary, details, supporting = _evidence_groups(workspace.evidence)
+
+    assert isinstance(primary[0], NarrativeEvidence)
+    assert primary[0].purpose is EvidencePurpose.ANSWER
+    assert len(primary) <= 3
+    assert details
+    assert supporting
+
+
 def test_fingerprints_are_stable_and_timestamp_is_not_identity() -> None:
     service = _service()
     first = service.retire_earlier(58).provenance
@@ -299,15 +341,21 @@ def test_live_and_mock_modes_are_visibly_separate_in_streamlit() -> None:
 
     assert not app.exception
     rendered = "\n".join(markdown.value for markdown in app.markdown)
-    assert "Choose a question to explore with the v0.2 baseline." in rendered
-    assert "No mock evidence" in rendered
+    assert "Choose a question to explore." in rendered
+    assert "No illustrative evidence" in rendered
 
-    app.button(key="live-goal-G-005").click().run(timeout=30)
+    app.button(key="wos-live-goal-g-005").click().run(timeout=30)
     assert not app.exception
     rendered = "\n".join(markdown.value for markdown in app.markdown)
-    assert "Live deterministic Workspace" in rendered
+    assert "Live baseline · read only" in rendered
     assert "Cash Decline Explanation" in rendered
     assert "Illustrative mock Workspace" not in rendered
+    assert "ScenarioOverride" not in rendered
+    assert "deterministic engine" not in rendered.casefold()
+    assert app.expander
+    renderer_source = LIVE_RENDERER.read_text(encoding="utf-8")
+    assert 'st.expander("Provenance", expanded=False)' in renderer_source
+    assert 'st.expander("Supporting details", expanded=False)' in renderer_source
 
 
 def _service() -> LiveExperienceService:

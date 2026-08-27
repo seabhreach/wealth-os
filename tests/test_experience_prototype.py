@@ -20,6 +20,7 @@ from experience.mock_data import (
     VALID_QUESTION_IDS,
     all_journeys,
     journey_for,
+    match_journey,
 )
 from experience.models import (
     CompletionState,
@@ -34,10 +35,16 @@ from experience.review import developer_review_state
 from experience.styles import (
     DARK_INPUT_BACKGROUND,
     DARK_INPUT_FOREGROUND,
+    DARK_THEME_TOKENS,
     EXPERIENCE_CSS,
     LIGHT_INPUT_BACKGROUND,
     LIGHT_INPUT_FOREGROUND,
+    LIGHT_THEME_TOKENS,
+    RESPONSIVE_BREAKPOINT_PX,
+    layout_mode_for_width,
+    pane_order_for_width,
 )
+from experience.widget_keys import widget_key
 from experience.workspace import visible_sections
 from streamlit.testing.v1 import AppTest
 
@@ -60,11 +67,12 @@ def test_home_is_a_minimal_conversation_entry_point() -> None:
 
 def test_recent_workspace_opens_and_return_home_resets_the_ui() -> None:
     app = AppTest.from_file(str(EXPERIENCE_ROOT / "app.py")).run(timeout=30)
-    app.button(key="recent-G-002").click().run(timeout=30)
+    app.button(key="wos-recent-g-002").click().run(timeout=30)
 
     assert not app.exception
     rendered = "\n".join(markdown.value for markdown in app.markdown)
-    assert "Restored the mock Investment Property Workspace." in rendered
+    assert "Restored the mock" not in rendered
+    assert "That gives me enough for an initial comparison." in rendered
     assert "Initial comparison" in rendered
 
     app.button(key="return-home").click().run(timeout=30)
@@ -239,6 +247,128 @@ def test_cash_decline_asks_zero_data_collection_questions() -> None:
     assert state.enough_information
 
 
+@pytest.mark.parametrize(
+    ("phrase", "goal_id"),
+    [
+        ("Could I retire before 60?", GoalId.RETIRE_EARLIER),
+        ("Could I stop working earlier?", GoalId.RETIRE_EARLIER),
+        ("What if I retire at 58?", GoalId.RETIRE_EARLIER),
+        ("Could I buy an investment property?", GoalId.INVESTMENT_PROPERTY),
+        ("What about a rental property?", GoalId.INVESTMENT_PROPERTY),
+        ("Could I buy another property?", GoalId.INVESTMENT_PROPERTY),
+        ("How dependent am I on my employer shares?", GoalId.EMPLOYER_EQUITY),
+        ("What concentration do I have in employer shares?", GoalId.EMPLOYER_EQUITY),
+        ("How should I think about my RSUs?", GoalId.EMPLOYER_EQUITY),
+        ("Could I spend more in retirement?", GoalId.HIGHER_SPENDING),
+        ("Show higher retirement spending", GoalId.HIGHER_SPENDING),
+        ("What about extra spending?", GoalId.HIGHER_SPENDING),
+        ("Why does my cash decline after retirement?", GoalId.CASH_DECLINE),
+        ("Why is my cash falling?", GoalId.CASH_DECLINE),
+        ("Explain my cash balance", GoalId.CASH_DECLINE),
+    ],
+)
+def test_supported_goal_routing_is_bounded_and_deterministic(phrase: str, goal_id: GoalId) -> None:
+    assert match_journey(phrase) is goal_id
+    assert match_journey(phrase) is goal_id
+
+
+def test_unsupported_intent_never_defaults_to_retirement() -> None:
+    state = start_conversation("Can you compare two mortgage products?")
+
+    assert state.active_goal is None
+    assert state.is_home
+    assert "currently explore" in state.messages[-1].content
+    assert "retiring earlier" in state.messages[-1].content
+
+
+@pytest.mark.parametrize("scope", ["self", "household"])
+def test_g001_household_paths_complete_in_streamlit_without_duplicate_keys(
+    scope: str,
+) -> None:
+    app = AppTest.from_file(str(EXPERIENCE_ROOT / "app.py")).run(timeout=30)
+    app.chat_input(key="home-chat-input").set_value("Could I retire before 60?").run(timeout=30)
+    assert not app.exception
+
+    state = start_conversation("Could I retire before 60?")
+    choices = available_choices(state)
+    scope_index = next(index for index, choice in enumerate(choices) if choice.value == scope)
+    state, app = _click_choice(app, state, scope_index)
+    state, app = _click_choice(app, state, 0)
+    if scope == "household":
+        state, app = _click_choice(app, state, 0)
+    while state.current_step is not None:
+        state, app = _click_choice(app, state, 0)
+
+    assert state.enough_information
+    assert not app.exception
+
+
+def test_g001_restart_replay_saved_workspace_and_refinement_are_key_safe() -> None:
+    app = AppTest.from_file(str(EXPERIENCE_ROOT / "app.py")).run(timeout=30)
+    app.button(key="wos-recent-g-001").click().run(timeout=30)
+    assert not app.exception
+
+    state = open_saved_workspace(GoalId.RETIRE_EARLIER)
+    state, app = _click_choice(app, state, 0)
+    assert state.refinement_performed
+
+    app.button(key="return-home").click().run(timeout=30)
+    app.chat_input(key="home-chat-input").set_value("Could I retire before 60?").run(timeout=30)
+    assert not app.exception
+    replay = start_conversation("Could I retire before 60?")
+    replay, app = _click_choice(app, replay, 0)
+    replay, app = _click_choice(app, replay, 0)
+
+    assert replay.current_step == "retire-target"
+    assert not app.exception
+
+
+def test_widget_keys_are_unique_across_questions_refinements_and_replays() -> None:
+    keys: list[str] = []
+    for journey in all_journeys():
+        workspace_id = f"mock-workspace-{journey.goal_id.value}"
+        for question in journey.questions:
+            keys.extend(
+                widget_key(
+                    "choice",
+                    workspace_id,
+                    journey.goal_id.value,
+                    question.key,
+                    index,
+                    choice.value,
+                )
+                for index, choice in enumerate(question.choices)
+            )
+        keys.extend(
+            widget_key(
+                "choice",
+                workspace_id,
+                journey.goal_id.value,
+                "refinement",
+                index,
+                choice.value,
+            )
+            for index, choice in enumerate(journey.refinement.choices)
+        )
+
+    assert len(keys) == len(set(keys))
+
+
+@pytest.mark.parametrize("goal_id", list(GoalId))
+def test_all_five_streamlit_journeys_render_without_duplicate_keys(goal_id: GoalId) -> None:
+    prompt = journey_for(goal_id).example_prompt
+    app = AppTest.from_file(str(EXPERIENCE_ROOT / "app.py")).run(timeout=30)
+    app.chat_input(key="home-chat-input").set_value(prompt).run(timeout=30)
+    assert not app.exception
+
+    state = start_conversation(prompt, goal_id)
+    while state.current_step is not None:
+        state, app = _click_choice(app, state, 0)
+
+    assert state.enough_information
+    assert not app.exception
+
+
 def test_workspace_reveals_follow_declared_order_and_one_change_per_answer() -> None:
     for goal_id in GoalId:
         state = start_conversation(journey_for(goal_id).example_prompt, goal_id)
@@ -345,7 +475,7 @@ def test_no_continue_or_submit_controls_exist() -> None:
 
 def test_mock_financial_values_and_arithmetic_stay_in_mock_data() -> None:
     for path in _mock_paths():
-        if path.name in {"mock_data.py", "styles.py"}:
+        if path.name in {"display.py", "mock_data.py", "styles.py"}:
             continue
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(path))
@@ -363,6 +493,57 @@ def test_visual_tokens_keep_inputs_and_chips_readable_in_both_themes() -> None:
     assert LIGHT_INPUT_FOREGROUND != DARK_INPUT_FOREGROUND
     assert 'button[kind="tertiary"]' in EXPERIENCE_CSS
     assert "focus-visible" in EXPERIENCE_CSS
+
+
+@pytest.mark.parametrize("tokens", [LIGHT_THEME_TOKENS, DARK_THEME_TOKENS])
+def test_semantic_theme_tokens_have_readable_foreground_background_pairs(
+    tokens: dict[str, str],
+) -> None:
+    pairs = (
+        ("primary_text", "page_background"),
+        ("secondary_text", "page_background"),
+        ("muted_text", "page_background"),
+        ("input_text", "input_background"),
+        ("placeholder_text", "input_background"),
+        ("chip_text", "chip_background"),
+        ("link_text", "page_background"),
+    )
+    assert set(tokens) == {
+        "page_background",
+        "primary_text",
+        "secondary_text",
+        "muted_text",
+        "surface_background",
+        "subtle_border",
+        "input_background",
+        "input_text",
+        "placeholder_text",
+        "chip_background",
+        "chip_text",
+        "link_text",
+        "focus_outline",
+        "disabled_text",
+    }
+    assert all(
+        _contrast_ratio(tokens[foreground], tokens[background]) >= 4.5
+        for foreground, background in pairs
+    )
+
+
+def test_responsive_layout_stacks_conversation_before_workspace() -> None:
+    assert layout_mode_for_width(850) == "stacked"
+    assert layout_mode_for_width(RESPONSIVE_BREAKPOINT_PX) == "stacked"
+    assert layout_mode_for_width(1100) == "split"
+    assert pane_order_for_width(850) == ("conversation", "workspace")
+    assert f"max-width: {RESPONSIVE_BREAKPOINT_PX}px" in EXPERIENCE_CSS
+    assert "flex-direction: column" in EXPERIENCE_CSS
+
+
+def test_saved_workspace_copy_contains_no_recovery_language() -> None:
+    for goal_id in GoalId:
+        state = open_saved_workspace(goal_id)
+        copy = " ".join(message.content.casefold() for message in state.messages)
+        assert "restored the mock" not in copy
 
 
 def test_message_identity_requires_no_emoji_or_avatar_dependency() -> None:
@@ -383,6 +564,39 @@ def _complete_first_path(goal_id: GoalId) -> PrototypeState:
     while state.current_step is not None:
         state = advance_with_choice(state, available_choices(state)[0].value)
     return state
+
+
+def _click_choice(
+    app: AppTest, state: PrototypeState, index: int
+) -> tuple[PrototypeState, AppTest]:
+    assert state.active_goal is not None
+    assert state.workspace_id is not None
+    step_key = state.current_step or "refinement"
+    choice = available_choices(state)[index]
+    key = widget_key(
+        "choice",
+        state.workspace_id,
+        state.active_goal.value,
+        step_key,
+        index,
+        choice.value,
+    )
+    app.button(key=key).click().run(timeout=30)
+    assert not app.exception
+    return advance_with_choice(state, choice.value), app
+
+
+def _contrast_ratio(first: str, second: str) -> float:
+    def luminance(value: str) -> float:
+        channels = tuple(int(value[index : index + 2], 16) / 255 for index in (1, 3, 5))
+        adjusted = tuple(
+            channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+            for channel in channels
+        )
+        return 0.2126 * adjusted[0] + 0.7152 * adjusted[1] + 0.0722 * adjusted[2]
+
+    lighter, darker = sorted((luminance(first), luminance(second)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
 
 
 def _mock_source() -> str:

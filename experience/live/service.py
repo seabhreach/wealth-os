@@ -12,7 +12,6 @@ from engine.reporting import (
     ScenarioOverride,
     ScenarioResult,
     annual_financial_statement,
-    retirement_funding_narrative,
     run_scenario,
     summarize_rental_properties,
 )
@@ -133,7 +132,7 @@ class LiveExperienceService:
                 "Funding bridge",
                 EvidencePurpose.EXPLANATION,
                 LIVE,
-                ("Period", "Engine output"),
+                ("Period", "Modelled value"),
                 (
                     ("First retirement year", first_retirement.calendar_year),
                     ("Liquid assets", first_retirement.liquid_assets),
@@ -150,7 +149,7 @@ class LiveExperienceService:
                 LIVE,
                 "Retirement age",
                 retirement_age,
-                "Validated ScenarioOverride",
+                "Temporary scenario input",
                 KNOWN,
             ),
             StrategyEvidence(
@@ -168,7 +167,7 @@ class LiveExperienceService:
                 "Limitations",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "This deterministic illustration retains the existing v0.2 return, tax, pension-access, inflation and longevity assumptions.",
+                "This illustration retains the existing v0.2 return, tax, pension-access, inflation and longevity assumptions.",
             ),
         )
         return self._workspace(
@@ -290,7 +289,7 @@ class LiveExperienceService:
                 LIVE,
                 ("Property", "Purchase year", "Purchase price", "Annual net rent"),
                 property_rows,
-                "Configured inputs reported by the existing property-reporting API.",
+                "Configured inputs from the existing property record.",
             ),
             StrategyEvidence(
                 "g002-strategy",
@@ -386,7 +385,7 @@ class LiveExperienceService:
                 LIVE,
                 "Denominator",
                 "Existing v0.2 net-worth denominator",
-                "Existing v0.2 scenario metric",
+                "Existing v0.2 comparison metric",
                 KNOWN,
             ),
             StrategyEvidence(
@@ -404,7 +403,7 @@ class LiveExperienceService:
                 "Limitations",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "The metric is the existing engine exposure ratio; the Experience does not define a new investable-assets concentration formula. Disposal taxes are not modelled.",
+                "The metric is the existing v0.2 exposure ratio; the Experience does not define a new investable-assets concentration formula. Disposal taxes are not modelled.",
             ),
         )
         return self._workspace(
@@ -447,7 +446,7 @@ class LiveExperienceService:
                     "Temporary spending is unsupported",
                     EvidencePurpose.LIMITATION,
                     LIVE,
-                    "No temporary multi-year result is shown because the engine has no supported override for that schedule.",
+                    "No temporary multi-year result is shown because the v0.2 model has no supported override for that schedule.",
                 ),
             )
             return self._workspace(
@@ -564,10 +563,7 @@ class LiveExperienceService:
                 "Answer",
                 EvidencePurpose.ANSWER,
                 LIVE,
-                (
-                    f"{retirement_funding_narrative(statement)} "
-                    "The annual trace links opening cash, configured inflows, purchases and cash used for spending to closing cash."
-                ),
+                _cash_decline_answer(statement),
                 ("g005-statement", "g005-funding"),
             ),
             FinancialStatementEvidence(
@@ -607,11 +603,11 @@ class LiveExperienceService:
                     ("Estimated income tax", statement.funding.estimated_income_tax),
                     ("Estimated USC", statement.funding.estimated_usc),
                     ("Cash used", statement.funding.cash_used),
-                    ("ETF sales", statement.funding.etf_units_sold),
-                    ("Employer-equity sales", statement.funding.amazon_shares_sold),
+                    ("ETF units sold", statement.funding.etf_units_sold),
+                    ("Employer-equity shares sold", statement.funding.amazon_shares_sold),
                     ("Unfunded amount", statement.funding.unfunded_amount),
                 ),
-                "Categories are copied from AnnualFinancialStatement and AnnualCalculationTrace.",
+                "Categories are copied from the existing annual statement and calculation trace.",
             ),
             InsightEvidence(
                 "g005-transition",
@@ -626,7 +622,7 @@ class LiveExperienceService:
                 "Evidence boundary",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "No new Financial Picture data was requested. The explanation is limited to categories exposed by existing v0.2 reporting and trace APIs.",
+                "No new Financial Picture data was requested. The explanation is limited to categories exposed by existing v0.2 reporting and trace evidence.",
             ),
         )
         return self._workspace(
@@ -706,6 +702,38 @@ def _cash_transition_observation(statement: AnnualFinancialStatement) -> str:
     if funding.cash_used:
         return "Cash is the liquid source used for the remaining spending gap in the selected year."
     return "No liquid-asset sale is required in the selected year."
+
+
+def _cash_decline_answer(statement: AnnualFinancialStatement) -> str:
+    funding = statement.funding
+    recurring_sources: list[str] = []
+    if funding.rental_income > 0:
+        recurring_sources.append("rental income")
+    if funding.private_pension_income > 0:
+        recurring_sources.append("private-pension income")
+    if funding.state_pension > 0:
+        recurring_sources.append("State Pension income")
+
+    if recurring_sources and funding.cash_used > 0:
+        sources = _join_sources(recurring_sources)
+        cause = f"{sources.capitalize()} cover part of retirement spending; the remainder comes from cash."
+    elif recurring_sources:
+        sources = _join_sources(recurring_sources)
+        cause = f"{sources.capitalize()} cover retirement spending without a cash withdrawal."
+    elif funding.cash_used > 0:
+        cause = "Cash covers the retirement-spending need in the selected year."
+    else:
+        cause = "No cash withdrawal is required for retirement spending in the selected year."
+    return (
+        f"In {statement.calendar_year}, {cause} The annual trace links opening cash, "
+        "income, purchases and cash used for spending to closing cash."
+    )
+
+
+def _join_sources(sources: list[str]) -> str:
+    if len(sources) == 1:
+        return sources[0]
+    return f"{', '.join(sources[:-1])} and {sources[-1]}"
 
 
 def _property_picture_keys(baseline: LiveBaseline) -> tuple[str, ...]:

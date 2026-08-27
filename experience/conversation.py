@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from experience.mock_data import (
-    DEFAULT_GOAL,
     QUESTION_IDS_BY_GOAL,
     journey_for,
     match_journey,
@@ -39,7 +38,19 @@ def start_conversation(user_message: str, goal_id: GoalId | None = None) -> Prot
     """Start the matching finite mock journey from the user's opening question."""
 
     normalized = user_message.strip()
-    selected_goal = goal_id or match_journey(normalized) or DEFAULT_GOAL
+    selected_goal = goal_id or match_journey(normalized)
+    if selected_goal is None:
+        return PrototypeState(
+            messages=(
+                Message(MessageRole.USER, normalized),
+                Message(
+                    MessageRole.ASSISTANT,
+                    "I can currently explore retiring earlier, an investment property, "
+                    "employer-equity exposure, higher retirement spending, or a cash decline. "
+                    "Choose one of the saved Workspaces below or ask about one of those topics.",
+                ),
+            )
+        )
     journey = journey_for(selected_goal)
     messages = (Message(MessageRole.USER, normalized),)
 
@@ -75,7 +86,6 @@ def open_saved_workspace(goal_id: GoalId) -> PrototypeState:
         active_goal=goal_id,
         workspace_id=_workspace_id(goal_id),
         messages=(
-            Message(MessageRole.ASSISTANT, f"Restored the mock {journey.recent_title} Workspace."),
             Message(MessageRole.ASSISTANT, journey.enough_message),
             Message(MessageRole.ASSISTANT, journey.refinement.prompt),
         ),

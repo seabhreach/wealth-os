@@ -3,11 +3,11 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
 from html import escape
 
 import streamlit as st
 
+from experience.display import format_display_value, format_table_value
 from experience.live.models import (
     AssumptionEvidence,
     ComparisonEvidence,
@@ -27,20 +27,24 @@ from experience.live.models import (
 def render_live_workspace(workspace: LiveWorkspace) -> None:
     """Arrange existing evidence answer-first without deriving financial values."""
 
-    st.markdown(
-        '<div class="wos-pane-label">Live deterministic Workspace</div>', unsafe_allow_html=True
-    )
+    st.markdown('<div class="wos-pane-label">Workspace</div>', unsafe_allow_html=True)
     st.markdown(
         f'<div class="wos-workspace-title">{escape(workspace.title)}</div>', unsafe_allow_html=True
     )
     st.markdown(
-        '<div class="wos-live-badge">Live · v0.2 deterministic engine</div>', unsafe_allow_html=True
+        '<div class="wos-live-badge">Live baseline · read only</div>', unsafe_allow_html=True
     )
 
-    primary, supporting = _evidence_groups(workspace.evidence)
+    primary, details, supporting = _evidence_groups(workspace.evidence)
     for evidence in primary:
         _render_evidence(evidence)
-    _render_financial_picture(workspace)
+    if details:
+        with st.expander("Supporting details", expanded=False):
+            for evidence in details:
+                _render_evidence(evidence)
+    if workspace.picture_item_keys:
+        with st.expander("Financial Picture details", expanded=False):
+            _render_financial_picture(workspace)
     for evidence in supporting:
         _render_evidence(evidence)
     _render_provenance(workspace)
@@ -48,11 +52,21 @@ def render_live_workspace(workspace: LiveWorkspace) -> None:
 
 def _evidence_groups(
     evidence: tuple[LiveEvidence, ...],
-) -> tuple[tuple[LiveEvidence, ...], tuple[LiveEvidence, ...]]:
+) -> tuple[tuple[LiveEvidence, ...], tuple[LiveEvidence, ...], tuple[LiveEvidence, ...]]:
     supporting_types = (AssumptionEvidence, StrategyEvidence, LimitationEvidence)
-    primary = tuple(item for item in evidence if not isinstance(item, supporting_types))
     supporting = tuple(item for item in evidence if isinstance(item, supporting_types))
-    return primary, supporting
+    candidates = tuple(item for item in evidence if not isinstance(item, supporting_types))
+    primary: list[LiveEvidence] = []
+    details: list[LiveEvidence] = []
+    for item in candidates:
+        if (
+            isinstance(item, (FinancialStatementEvidence, TableEvidence, TimelineEvidence))
+            or len(primary) >= 3
+        ):
+            details.append(item)
+        else:
+            primary.append(item)
+    return tuple(primary), tuple(details), supporting
 
 
 def _render_evidence(evidence: LiveEvidence) -> None:
@@ -60,22 +74,22 @@ def _render_evidence(evidence: LiveEvidence) -> None:
         _section(evidence.title, evidence.text)
     elif isinstance(evidence, ComparisonEvidence):
         rows = (
-            (evidence.baseline_label, _format_value(evidence.baseline_value, evidence.unit)),
-            (evidence.scenario_label, _format_value(evidence.scenario_value, evidence.unit)),
+            (evidence.baseline_label, format_display_value(evidence.baseline_value, evidence.unit)),
+            (evidence.scenario_label, format_display_value(evidence.scenario_value, evidence.unit)),
         )
         _rows(evidence.title, evidence.metric, rows)
     elif isinstance(evidence, MetricEvidence):
         _rows(
             evidence.title,
             evidence.label,
-            ((evidence.period or "Value", _format_value(evidence.value, evidence.unit)),),
+            ((evidence.period or "Value", format_display_value(evidence.value, evidence.unit)),),
         )
     elif isinstance(evidence, TimelineEvidence):
         _rows(
             evidence.title,
             evidence.label,
             tuple(
-                (str(point.period), _format_value(point.value, evidence.unit))
+                (str(point.period), format_display_value(point.value, evidence.unit))
                 for point in evidence.points
             ),
         )
@@ -83,10 +97,10 @@ def _render_evidence(evidence: LiveEvidence) -> None:
         _table(evidence)
     elif isinstance(evidence, FinancialStatementEvidence):
         statement_rows: tuple[tuple[str, str], ...] = (
-            ("Opening cash", _format_value(evidence.opening_cash, "EUR")),
-            *((label, _format_value(value, "EUR")) for label, value in evidence.inflows),
-            *((label, _format_value(value, "EUR")) for label, value in evidence.outflows),
-            ("Closing cash", _format_value(evidence.closing_cash, "EUR")),
+            ("Opening cash", format_display_value(evidence.opening_cash, "EUR")),
+            *((label, format_display_value(value, "EUR")) for label, value in evidence.inflows),
+            *((label, format_display_value(value, "EUR")) for label, value in evidence.outflows),
+            ("Closing cash", format_display_value(evidence.closing_cash, "EUR")),
         )
         _rows(
             evidence.title,
@@ -97,7 +111,7 @@ def _render_evidence(evidence: LiveEvidence) -> None:
         _rows(
             evidence.title,
             f"{evidence.source} · {evidence.confidence.value}",
-            ((evidence.label, _format_value(evidence.value, "")),),
+            ((evidence.label, format_display_value(evidence.value)),),
         )
     elif isinstance(evidence, StrategyEvidence):
         _rows(
@@ -117,10 +131,13 @@ def _render_financial_picture(workspace: LiveWorkspace) -> None:
     if not items:
         return
     rows = tuple(
-        (item.label, f"{_format_value(item.value, _unit_for_key(item.key))} · {item.status.value}")
+        (
+            item.label,
+            f"{format_display_value(item.value, _unit_for_key(item.key))} · {item.status.value}",
+        )
         for item in items
     )
-    _rows("Relevant Financial Picture", "Validated baseline · read only", rows)
+    _rows("Relevant Financial Picture", "Baseline data · read only", rows)
 
 
 def _render_provenance(workspace: LiveWorkspace) -> None:
@@ -165,7 +182,12 @@ def _rows(title: str, summary: str, rows: tuple[tuple[str, str], ...]) -> None:
 def _table(evidence: TableEvidence) -> None:
     header = "".join(f"<th>{escape(column)}</th>" for column in evidence.columns)
     rows = "".join(
-        "<tr>" + "".join(f"<td>{escape(_format_value(value, ''))}</td>" for value in row) + "</tr>"
+        "<tr>"
+        + "".join(
+            f"<td>{escape(format_table_value(value, evidence.columns[index], str(row[0])))}</td>"
+            for index, value in enumerate(row)
+        )
+        + "</tr>"
         for row in evidence.rows
     )
     footnote = f"<p>{escape(evidence.footnote)}</p>" if evidence.footnote else ""
@@ -173,21 +195,6 @@ def _table(evidence: TableEvidence) -> None:
         f'<section class="wos-section"><h3>{escape(evidence.title)}</h3><div class="wos-live-table"><table><thead><tr>{header}</tr></thead><tbody>{rows}</tbody></table></div>{footnote}</section>',
         unsafe_allow_html=True,
     )
-
-
-def _format_value(value: Decimal | int | str | bool | None, unit: str) -> str:
-    if value is None:
-        return "None"
-    if isinstance(value, bool):
-        return "Enabled" if value else "Disabled"
-    if isinstance(value, Decimal):
-        if unit == "ratio":
-            return f"{value:.1%}"
-        if unit.startswith("EUR"):
-            suffix = "/year" if unit.endswith("/year") else ""
-            return f"€{value:,.0f}{suffix}"
-        return f"{value:f}"
-    return str(value)
 
 
 def _unit_for_key(key: str) -> str:

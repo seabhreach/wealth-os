@@ -15,8 +15,6 @@ from experience.models import (
     WorkspaceSection,
 )
 
-DEFAULT_GOAL = GoalId.RETIRE_EARLIER
-
 QUESTION_IDS_BY_GOAL: dict[GoalId, frozenset[str]] = {
     GoalId.RETIRE_EARLIER: frozenset({"Q-001", "Q-002", "Q-004", "Q-005", "Q-008"}),
     GoalId.INVESTMENT_PROPERTY: frozenset({"Q-010", "Q-011", "Q-012", "Q-013", "Q-015"}),
@@ -851,10 +849,79 @@ def question_for(journey: Journey, step_key: str) -> QuestionStep:
 
 
 def match_journey(user_message: str) -> GoalId | None:
-    """Match an opening message to a journey with simple deterministic keywords."""
+    """Match supported intent using explicit phrases, preferring the most specific."""
 
-    normalized = user_message.casefold()
-    for journey in all_journeys():
-        if any(keyword in normalized for keyword in journey.keywords):
-            return journey.goal_id
+    normalized = " ".join(user_message.casefold().replace("-", " ").split())
+    phrases = (
+        (
+            GoalId.CASH_DECLINE,
+            (
+                "why does my cash decline",
+                "why is my cash falling",
+                "cash falls after retirement",
+                "why does cash fall",
+                "cash going down",
+                "explain my cash balance",
+                "cash decline",
+                "cash falling",
+                "cash fall",
+            ),
+        ),
+        (
+            GoalId.EMPLOYER_EQUITY,
+            (
+                "dependent on my employer shares",
+                "concentration in employer shares",
+                "employer shares",
+                "company shares",
+                "employer equity",
+                "stock awards",
+                "share exposure",
+                "equity exposure",
+                "rsus",
+                "vesting",
+            ),
+        ),
+        (
+            GoalId.INVESTMENT_PROPERTY,
+            (
+                "buy an investment property",
+                "buy another property",
+                "property investment",
+                "investment property",
+                "rental property",
+            ),
+        ),
+        (
+            GoalId.HIGHER_SPENDING,
+            (
+                "increase retirement spending",
+                "higher retirement spending",
+                "spend more in retirement",
+                "spent more in retirement",
+                "extra spending",
+                "spend more",
+                "retirement spending",
+            ),
+        ),
+        (
+            GoalId.RETIRE_EARLIER,
+            (
+                "stop working earlier",
+                "retire before 60",
+                "retire earlier",
+                "retire at 58",
+                "earlier retirement",
+            ),
+        ),
+    )
+    matches = (
+        (len(phrase), goal_id)
+        for goal_id, goal_phrases in phrases
+        for phrase in goal_phrases
+        if phrase in normalized
+    )
+    selected = max(matches, default=None, key=lambda item: item[0])
+    if selected is not None:
+        return selected[1]
     return None

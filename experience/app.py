@@ -31,6 +31,7 @@ from experience.live import LiveExperienceService
 from experience.models import GoalId, PrototypeState
 from experience.review import developer_review_state
 from experience.styles import apply_styles
+from experience.widget_keys import widget_key
 from experience.workspace import visible_sections, workspace_status, workspace_title
 
 STATE_KEY = "wealth_os_experience_state"
@@ -53,7 +54,7 @@ def _save(state: PrototypeState) -> None:
     st.session_state[STATE_KEY] = state
 
 
-def _render_home() -> None:
+def _render_home(state: PrototypeState) -> None:
     _, home_column, _ = st.columns((0.55, 3.0, 0.55))
     with home_column:
         st.markdown(
@@ -71,11 +72,9 @@ def _render_home() -> None:
             "Ask about retirement, spending, property, employer equity or cash flow",
             key="home-chat-input",
         )
+        if state.messages:
+            render_messages(state.messages)
         selected_goal = render_recent_workspaces()
-        st.markdown(
-            '<div class="wos-prototype-note">Illustrative prototype · Mock data only</div>',
-            unsafe_allow_html=True,
-        )
 
     if opening_message:
         _save(start_conversation(opening_message))
@@ -93,12 +92,18 @@ def _render_active(state: PrototypeState) -> None:
             _save(reset_state())
             st.rerun()
         render_messages(state.messages)
-        state_token = f"{state.current_step or 'refinement'}-{len(state.messages)}"
-        selected_action = render_contextual_actions(contextual_actions(state), state_token)
-        selected_choice = render_choice_chips(available_choices(state), state_token)
+        assert state.active_goal is not None
+        workspace_id = state.workspace_id or "mock-workspace"
+        step_key = state.current_step or "refinement"
+        selected_action = render_contextual_actions(
+            contextual_actions(state), workspace_id, state.active_goal, step_key
+        )
+        selected_choice = render_choice_chips(
+            available_choices(state), workspace_id, state.active_goal, step_key
+        )
         follow_up = st.chat_input(
             "Share an answer or ask a follow-up",
-            key=f"active-chat-input-{state_token}",
+            key=widget_key("chat-input", workspace_id, state.active_goal.value, step_key),
         )
         if selected_choice is not None:
             _save(advance_with_choice(state, selected_choice))
@@ -114,10 +119,7 @@ def _render_active(state: PrototypeState) -> None:
         render_workspace_header(workspace_title(state), workspace_status(state))
         render_workspace_sections(visible_sections(state))
         st.markdown(
-            (
-                '<div class="wos-prototype-note">Illustrative mock Workspace · '
-                "No live financial integration</div>"
-            ),
+            ('<div class="wos-prototype-note">Illustrative Workspace · Example data</div>'),
             unsafe_allow_html=True,
         )
         if st.query_params.get("review") == "1":
@@ -131,10 +133,10 @@ def _render_live_home() -> None:
         st.markdown(
             (
                 '<main class="wos-home">'
-                '<div class="wos-wordmark">Live deterministic experience</div>'
-                '<h1 class="wos-question">Choose a question to explore with the v0.2 baseline.</h1>'
-                '<p class="wos-support">These Workspaces use the validated example household and '
-                "existing deterministic simulation and reporting APIs.</p>"
+                '<div class="wos-wordmark">Live baseline</div>'
+                '<h1 class="wos-question">Choose a question to explore.</h1>'
+                '<p class="wos-support">These Workspaces use the example household and the '
+                "recovered v0.2 calculations.</p>"
                 "</main>"
             ),
             unsafe_allow_html=True,
@@ -150,13 +152,16 @@ def _render_live_home() -> None:
             }[goal_id]
             if columns[index].button(
                 label,
-                key=f"live-goal-{goal_id.value}",
+                key=widget_key("live-goal", goal_id.value),
                 use_container_width=True,
             ):
                 st.session_state[LIVE_GOAL_KEY] = goal_id
                 st.rerun()
         st.markdown(
-            '<div class="wos-prototype-note">Validated example baseline · No mock evidence</div>',
+            (
+                '<div class="wos-prototype-note">Read-only example household · '
+                "No illustrative evidence</div>"
+            ),
             unsafe_allow_html=True,
         )
 
@@ -165,16 +170,15 @@ def _render_live_active(goal_id: GoalId) -> None:
     service = LiveExperienceService.from_example(Path(__file__).resolve().parents[1])
     conversation_column, workspace_column = st.columns((0.82, 1.18), gap="large")
     with conversation_column:
-        st.markdown('<div class="wos-pane-label">Live exploration</div>', unsafe_allow_html=True)
+        st.markdown('<div class="wos-pane-label">Explore</div>', unsafe_allow_html=True)
         if st.button("Return to live goals", key="return-live-home", type="tertiary"):
             st.session_state.pop(LIVE_GOAL_KEY, None)
             st.rerun()
         st.markdown(
             (
                 '<div class="wos-message">'
-                '<div class="wos-message-author">Wealth OS</div>'
-                '<div class="wos-message-body">This view calls the existing deterministic '
-                "v0.2 engine. Changes below are temporary and never update the baseline.</div>"
+                '<div class="wos-message-body">Changes below are temporary and never update '
+                "your baseline.</div>"
                 "</div>"
             ),
             unsafe_allow_html=True,
@@ -185,12 +189,15 @@ def _render_live_active(goal_id: GoalId) -> None:
 
 
 def _prototype_mode() -> str:
-    return st.radio(
-        "Prototype mode",
-        (MOCK_MODE, LIVE_MODE),
-        horizontal=True,
-        key=MODE_KEY,
-    )
+    with st.expander("Review mode", expanded=False):
+        st.caption("Switch between illustrative and live-baseline evidence.")
+        return st.radio(
+            "Evidence source",
+            (MOCK_MODE, LIVE_MODE),
+            horizontal=True,
+            key=MODE_KEY,
+            label_visibility="collapsed",
+        )
 
 
 def main() -> None:
@@ -208,7 +215,7 @@ def main() -> None:
         return
     current = _state()
     if current.is_home:
-        _render_home()
+        _render_home(current)
     else:
         _render_active(current)
 

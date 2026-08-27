@@ -129,16 +129,49 @@ unchanged.
 There is no LLM, generative explanation, semantic routing, embedding, vector database, or external
 AI integration. Live explanations are deterministic and template-backed.
 
+## Post-Recovery Stabilization Sprint 1
+
+The recovered Experience was stabilized against the first visual and functional review without
+changing its product scope or financial behaviour.
+
+- Streamlit widget keys now include stable journey context, preventing duplicate-key failures
+  across household branches, refinements, saved Workspace reopening, and replay.
+- Natural-language routing is deterministic across the five supported Goal Library journeys.
+  Unsupported questions receive an explicit, natural response instead of silently opening the
+  retire-earlier journey.
+- Home, recent Workspace cards, conversation labels, and developer controls were simplified so
+  the question remains the primary entry point and internal review controls are visually demoted.
+- Light and dark themes use explicit semantic colour tokens for readable text, inputs,
+  placeholders, chips, links, focus states, and disabled controls.
+- The conversation and Workspace remain side by side at wide widths and stack in conversation-
+  first order below the 1,050 px responsive breakpoint. The former fixed Workspace height was
+  removed to avoid large empty regions.
+- Live answers remain above supporting detail. Dense tables, timelines, Financial Picture detail,
+  and provenance are available in collapsed secondary sections rather than competing with the
+  direct answer.
+- Live cash-decline wording now follows the positive income and funding evidence already present
+  in the selected annual statement. It does not infer absent evidence or introduce a new
+  calculation.
+- Display formatting is presentation-only: exact `Decimal` evidence remains immutable while
+  customer-facing currency, percentages, quantities, and large values omit irrelevant numerical
+  tails.
+
+The stabilization retains mock/live isolation, immutable baselines, generic employer-equity
+language, temporary-scenario wording, advice-free comparisons, and collapsed provenance. It adds
+no LLM, persistence, goals, financial calculations, engine behaviour, or domain semantics.
+
 ## Validation Results
 
 - Ruff lint: passed for the full repository after live deterministic Experience reconstruction.
-- Ruff formatting check: passed; 117 files were already formatted.
-- Strict MyPy: passed; no issues found in 93 source files.
-- Focused Experience tests: passed; 62 tests (43 mock and 19 live) covering branching, stable
-  question IDs, information quality, progressive evidence, refinements, saved Workspaces,
-  immutable live evidence, deterministic provenance, supported scenario mappings, explicit
-  limitations, and architecture boundaries.
-- Full Pytest suite: passed; 162 tests.
+- Ruff formatting check: passed; 119 files were already formatted.
+- Strict MyPy: passed; no issues found in 95 source files.
+- Focused Experience tests: passed; 94 tests (72 mock and 22 live) covering deterministic routing,
+  unsupported questions, contextual widget keys, every complete goal journey, both G-001
+  household branches, refinements, saved Workspace reopening and replay, theme contrast,
+  responsive ordering, presentation-only formatting, immutable live evidence, G-005 narrative
+  consistency, answer-first evidence hierarchy, deterministic provenance, supported scenario
+  mappings, explicit limitations, and architecture boundaries.
+- Full Pytest suite: passed; 194 tests.
 - Golden baseline tests: passed; 5 tests.
 - Tax engine, integration, and reporting tests: passed; 15 tests.
 - Pension growth tests: passed; 5 tests.
@@ -149,6 +182,10 @@ AI integration. Live explanations are deterministic and template-backed.
 - Headless Streamlit launches: passed for both the v0.2 dashboard and the Experience app; each
   health endpoint returned HTTP 200 with `ok`, each root page returned HTTP 200, and neither app
   reported an application exception.
+- Visual browser review: passed in forced light and dark themes at 1,440 px, 1,100 px, and 850 px.
+  Home, G-001 household discovery and age-58 comparison, direct G-005 explanation, generic G-003
+  employer-equity discovery, live G-001, and live G-005 were inspected without duplicate-widget
+  or application exceptions.
 
 ## Recovery Compatibility Corrections
 
