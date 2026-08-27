@@ -44,8 +44,8 @@ restored, but exact original wording may differ.
 
 ## Known Missing Post-v0.2 Implementation
 
-The live Experience implementation, deterministic adapters, and adaptive conversation services
-remain missing.
+Production Financial Picture persistence, confirmed update workflows, adaptive conversation
+services, and AI orchestration remain missing.
 
 ## Experience Prototype Shell Reconstruction
 
@@ -84,15 +84,61 @@ data-collection questions.
 - No LLM or external AI service is present.
 - No financial calculations or v0.2 financial semantics changed.
 
+## Phase 4 Live Deterministic Experience Integration
+
+The lost Phase 4 live integration has been behaviorally reconstructed from the recovered live-data
+contract and the actual v0.2 application boundaries. It is not a byte-for-byte restoration of the
+original source.
+
+The implemented read-only flow is:
+
+```text
+validated example configuration
+→ customer-relevant Financial Picture adapter
+→ existing ScenarioOverride / run_scenario / annual reporting APIs
+→ frozen live evidence and provenance
+→ presentation-only Experience renderer
+```
+
+Live and mock modes are visibly separate and cannot share evidence within a Workspace. Live mode
+uses `data/example_household.yaml`; mock mode retains the reconstructed scripted fixtures. The live
+renderer formats and arranges evidence but performs no financial calculations.
+
+Supported live goals are:
+
+- G-001: baseline versus a bounded temporary retirement-age override.
+- G-002: configured planned-property inclusion versus exclusion.
+- G-003: the existing sell-on-vest and retain employer-equity policies, including only the
+  concentration metric already exposed by v0.2.
+- G-004: baseline versus a permanent retirement-spending override.
+- G-005: a selected existing reporting year explained through `AnnualFinancialStatement` and
+  `AnnualCalculationTrace`, with no new data collection.
+
+Financing and mortgages remain unsupported. Temporary multi-year retirement spending remains
+unsupported. No mortgage, spending-schedule, concentration, tax, pension, withdrawal, property,
+or equity-compensation calculation was added to the Experience. Unsupported requests produce
+explicit limitation evidence.
+
+Every live Workspace includes a stable baseline identifier, deterministic Financial Picture and
+result fingerprints, Goal ID, sorted scenario overrides, simulation identifier, tax-rule file
+fingerprint where applicable, and evidence-policy version. Generation time is recorded but is
+excluded from deterministic identity. Scenario runs create validated temporary copies, expose a
+proposed-update preview where relevant, never persist changes, and leave the loaded baseline
+unchanged.
+
+There is no LLM, generative explanation, semantic routing, embedding, vector database, or external
+AI integration. Live explanations are deterministic and template-backed.
+
 ## Validation Results
 
-- Ruff lint: passed for the full repository after mock journey reconstruction.
-- Ruff formatting check: passed; 109 files were already formatted.
-- Strict MyPy: passed; no issues found in 85 source files.
-- Focused Experience prototype tests: passed; 43 tests covering branching, stable question IDs,
-  information quality, progressive evidence, refinements, saved Workspaces, reset, review state,
-  visual guardrails, and architecture boundaries.
-- Full Pytest suite: passed; 143 tests.
+- Ruff lint: passed for the full repository after live deterministic Experience reconstruction.
+- Ruff formatting check: passed; 117 files were already formatted.
+- Strict MyPy: passed; no issues found in 93 source files.
+- Focused Experience tests: passed; 62 tests (43 mock and 19 live) covering branching, stable
+  question IDs, information quality, progressive evidence, refinements, saved Workspaces,
+  immutable live evidence, deterministic provenance, supported scenario mappings, explicit
+  limitations, and architecture boundaries.
+- Full Pytest suite: passed; 162 tests.
 - Golden baseline tests: passed; 5 tests.
 - Tax engine, integration, and reporting tests: passed; 15 tests.
 - Pension growth tests: passed; 5 tests.
@@ -100,8 +146,9 @@ data-collection questions.
 - Dashboard navigation tests: passed; 7 tests.
 - Distribution build: passed; `wealth_os-0.2.0.tar.gz` and
   `wealth_os-0.2.0-py3-none-any.whl` were built successfully.
-- Headless Streamlit launch: passed; the health endpoint returned HTTP 200 with `ok`, the root
-  page returned HTTP 200, and no application exception was reported.
+- Headless Streamlit launches: passed for both the v0.2 dashboard and the Experience app; each
+  health endpoint returned HTTP 200 with `ok`, each root page returned HTTP 200, and neither app
+  reported an application exception.
 
 ## Recovery Compatibility Corrections
 

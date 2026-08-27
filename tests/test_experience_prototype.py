@@ -317,13 +317,13 @@ def test_developer_review_state_contains_all_traceability_fields() -> None:
 
 
 def test_employer_equity_language_remains_generic() -> None:
-    experience_source = _experience_source()
+    experience_source = _mock_source()
     assert "employer equity" in repr(journey_for(GoalId.EMPLOYER_EQUITY)).casefold()
     assert "amazon" not in experience_source.casefold()
 
 
 def test_mock_package_has_no_engine_or_dashboard_imports() -> None:
-    assert _experience_import_roots().isdisjoint({"engine", "dashboard"})
+    assert _mock_import_roots().isdisjoint({"engine", "dashboard"})
 
 
 def test_no_continue_or_submit_controls_exist() -> None:
@@ -340,11 +340,11 @@ def test_no_continue_or_submit_controls_exist() -> None:
     )
     assert "continue" not in labels
     assert "submit" not in labels
-    assert "Continue" not in _experience_source()
+    assert "Continue" not in _mock_source()
 
 
 def test_mock_financial_values_and_arithmetic_stay_in_mock_data() -> None:
-    for path in EXPERIENCE_ROOT.rglob("*.py"):
+    for path in _mock_paths():
         if path.name in {"mock_data.py", "styles.py"}:
             continue
         source = path.read_text(encoding="utf-8")
@@ -368,7 +368,7 @@ def test_visual_tokens_keep_inputs_and_chips_readable_in_both_themes() -> None:
 def test_message_identity_requires_no_emoji_or_avatar_dependency() -> None:
     assert {role.value for role in MessageRole} == {"Wealth OS", "You"}
     assert all(value.isascii() for value in (role.value for role in MessageRole))
-    assert not {"emoji", "avatar"}.intersection(_experience_import_roots())
+    assert not {"emoji", "avatar"}.intersection(_mock_import_roots())
 
 
 def _start_and_answer(goal_id: GoalId, *answers: str) -> PrototypeState:
@@ -385,13 +385,13 @@ def _complete_first_path(goal_id: GoalId) -> PrototypeState:
     return state
 
 
-def _experience_source() -> str:
-    return "\n".join(path.read_text(encoding="utf-8") for path in EXPERIENCE_ROOT.rglob("*.py"))
+def _mock_source() -> str:
+    return "\n".join(path.read_text(encoding="utf-8") for path in _mock_paths())
 
 
-def _experience_import_roots() -> set[str]:
+def _mock_import_roots() -> set[str]:
     roots: set[str] = set()
-    for path in EXPERIENCE_ROOT.rglob("*.py"):
+    for path in _mock_paths():
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -399,3 +399,12 @@ def _experience_import_roots() -> set[str]:
             elif isinstance(node, ast.ImportFrom) and node.module:
                 roots.add(node.module.split(".", maxsplit=1)[0])
     return roots
+
+
+def _mock_paths() -> tuple[Path, ...]:
+    return tuple(
+        path
+        for path in EXPERIENCE_ROOT.rglob("*.py")
+        if "live" not in path.relative_to(EXPERIENCE_ROOT).parts
+        and not path.name.startswith("live_")
+    )

@@ -56,6 +56,7 @@ EXPERIENCE_CSS = f"""
 .wos-workspace {{ padding: 0.2rem 0 2rem 1.7rem; border-left: 1px solid var(--wos-line); min-height: 70vh; }}
 .wos-workspace-title {{ font-size: 1.85rem; line-height: 1.15; letter-spacing: -0.025em; margin: 0.55rem 0; }}
 .wos-status {{ display: inline-block; color: var(--wos-accent); background: color-mix(in srgb, var(--wos-accent) 10%, transparent); border-radius: 999px; padding: 0.35rem 0.7rem; font-size: 0.8rem; margin-bottom: 2rem; }}
+.wos-live-badge {{ display: inline-block; color: var(--wos-accent); border: 1px solid color-mix(in srgb, var(--wos-accent) 45%, transparent); border-radius: 999px; padding: 0.3rem 0.65rem; font-size: 0.76rem; margin: 0.4rem 0 1.4rem; }}
 .wos-section {{ padding: 1.15rem 0 1.35rem; border-top: 1px solid var(--wos-line); }}
 .wos-section h3 {{ font-size: 1rem; margin: 0 0 0.45rem; }}
 .wos-section p {{ color: var(--wos-muted); line-height: 1.55; margin: 0 0 0.8rem; }}
@@ -63,6 +64,10 @@ EXPERIENCE_CSS = f"""
 .wos-evidence-row {{ grid-template-columns: 1fr 1.3fr; }}
 .wos-row-label {{ color: var(--wos-muted); }}
 .wos-row-status {{ color: var(--wos-accent); font-size: 0.74rem; }}
+.wos-live-table {{ overflow-x: auto; }}
+.wos-live-table table {{ width: 100%; border-collapse: collapse; font-size: 0.84rem; }}
+.wos-live-table th, .wos-live-table td {{ padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--wos-line); text-align: left; color: var(--wos-ink); }}
+.wos-live-table th {{ color: var(--wos-muted); font-weight: 650; }}
 
 div[data-testid="stChatInput"] textarea {{ color: var(--wos-input-fg) !important; background: var(--wos-input-bg) !important; caret-color: var(--wos-input-fg) !important; }}
 div[data-testid="stChatInput"] textarea::placeholder {{ color: color-mix(in srgb, var(--wos-input-fg) 58%, transparent) !important; opacity: 1; }}
