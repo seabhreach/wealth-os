@@ -6,7 +6,7 @@ from html import escape
 
 import streamlit as st
 
-from experience.models import Choice, Message
+from experience.models import Choice, ContextAction, Message
 
 
 def render_messages(messages: tuple[Message, ...]) -> None:
@@ -24,7 +24,7 @@ def render_messages(messages: tuple[Message, ...]) -> None:
         )
 
 
-def render_choice_chips(choices: tuple[Choice, ...], step_index: int) -> str | None:
+def render_choice_chips(choices: tuple[Choice, ...], state_token: str) -> str | None:
     """Render subtle choice chips and return a selected value immediately."""
 
     if not choices:
@@ -33,17 +33,26 @@ def render_choice_chips(choices: tuple[Choice, ...], step_index: int) -> str | N
     for index, choice in enumerate(choices):
         if columns[index].button(
             choice.label,
-            key=f"choice-{step_index}-{choice.value}",
+            key=f"choice-{state_token}-{choice.value}",
             use_container_width=True,
         ):
             return choice.value
     return None
 
 
-def render_contextual_actions(actions: tuple[str, ...]) -> None:
-    """Render tiny contextual actions as understated text links."""
+def render_contextual_actions(
+    actions: tuple[ContextAction, ...], state_token: str
+) -> ContextAction | None:
+    """Render tiny contextual actions as understated clickable links."""
 
     if not actions:
-        return
-    items = "".join(f"<span>{escape(action)}</span>" for action in actions)
-    st.markdown(f'<div class="wos-context-actions">{items}</div>', unsafe_allow_html=True)
+        return None
+    columns = st.columns((*(1 for _ in actions), 4))
+    for index, action in enumerate(actions):
+        if columns[index].button(
+            action.value,
+            key=f"context-{state_token}-{action.name}",
+            type="tertiary",
+        ):
+            return action
+    return None

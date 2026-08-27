@@ -64,13 +64,35 @@ Workspace views, progressive Financial Picture evidence, and isolated illustrati
 The shell validates experience behavior only. It does not change or extend v0.2 financial
 calculations or semantics.
 
+## Mock Journey Branching and Evidence Progression
+
+The Phase 2 / Phase 3 mock journey behavior was reconstructed from project conversation history
+and the recovered Product Vision, Goal Library, Question Library, Discovery Model, and Experience
+documents. The five finite journeys now retain their recovered Goal IDs and traceable Question
+Library IDs while keeping those internal identifiers out of normal customer-facing views.
+
+The reconstructed prototype includes bounded household, property-funding, future-award, and
+spending-duration branches; Known, Estimated, Unknown, and Not relevant answer states; explicit
+enough-information transitions; progressively revealed evidence with a declared purpose; one
+in-place refinement per journey; predefined saved Workspaces; and a hidden developer review
+projection. The cash-decline journey uses the existing mock Financial Picture and asks no new
+data-collection questions.
+
+- This behavior is reconstructed from recovered intent and is not byte-for-byte original code.
+- The implementation remains mock-only and has no live Financial Picture or financial-engine
+  integration.
+- No LLM or external AI service is present.
+- No financial calculations or v0.2 financial semantics changed.
+
 ## Validation Results
 
-- Ruff lint: passed for the full repository.
-- Ruff formatting check: passed; 83 files were already formatted.
-- Strict MyPy: passed; no issues found in 70 source files.
-- Focused dashboard navigation tests: passed; 7 tests.
-- Full Pytest suite: passed; 100 tests.
+- Ruff lint: passed for the full repository after mock journey reconstruction.
+- Ruff formatting check: passed; 109 files were already formatted.
+- Strict MyPy: passed; no issues found in 85 source files.
+- Focused Experience prototype tests: passed; 43 tests covering branching, stable question IDs,
+  information quality, progressive evidence, refinements, saved Workspaces, reset, review state,
+  visual guardrails, and architecture boundaries.
+- Full Pytest suite: passed; 143 tests.
 - Golden baseline tests: passed; 5 tests.
 - Tax engine, integration, and reporting tests: passed; 15 tests.
 - Pension growth tests: passed; 5 tests.

@@ -70,6 +70,9 @@ div[data-testid="stChatInput"] {{ border-color: var(--wos-line); background: var
 
 div[data-testid="stButton"] > button {{ border-radius: 999px; border: 1px solid var(--wos-line); background: var(--wos-input-bg); color: var(--wos-input-fg); font-weight: 550; min-height: 2.35rem; }}
 div[data-testid="stButton"] > button:hover {{ border-color: var(--wos-accent); color: var(--wos-accent); background: var(--wos-soft); }}
+div[data-testid="stButton"] > button[kind="tertiary"] {{ min-height: auto; padding: 0.18rem 0; border: 0; border-radius: 0; background: transparent; color: var(--wos-muted); font-size: 0.8rem; text-decoration: underline; text-decoration-color: var(--wos-line); text-underline-offset: 0.2rem; }}
+div[data-testid="stButton"] > button[kind="tertiary"]:hover {{ background: transparent; color: var(--wos-accent); }}
+div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput"] textarea:focus-visible {{ outline: 3px solid color-mix(in srgb, var(--wos-accent) 55%, transparent); outline-offset: 2px; }}
 
 @media (max-width: 900px) {{
   .wos-workspace {{ border-left: 0; border-top: 1px solid var(--wos-line); padding: 2rem 0 0; margin-top: 2rem; min-height: auto; }}

@@ -13,15 +13,18 @@ from experience.components.recent_workspaces import render_recent_workspaces
 from experience.components.workspace_header import render_workspace_header
 from experience.components.workspace_sections import render_workspace_sections
 from experience.conversation import (
+    advance_with_action,
     advance_with_choice,
     advance_with_text,
     available_choices,
     contextual_actions,
     empty_state,
+    open_saved_workspace,
+    reset_state,
     start_conversation,
 )
 from experience.models import PrototypeState
-from experience.navigation import opening_prompt
+from experience.review import developer_review_state
 from experience.styles import apply_styles
 from experience.workspace import visible_sections, workspace_status, workspace_title
 
@@ -69,7 +72,7 @@ def _render_home() -> None:
         _save(start_conversation(opening_message))
         st.rerun()
     if selected_goal is not None:
-        _save(start_conversation(opening_prompt(selected_goal), selected_goal))
+        _save(open_saved_workspace(selected_goal))
         st.rerun()
 
 
@@ -77,15 +80,22 @@ def _render_active(state: PrototypeState) -> None:
     conversation_column, workspace_column = st.columns((0.92, 1.08), gap="large")
     with conversation_column:
         st.markdown('<div class="wos-pane-label">Conversation</div>', unsafe_allow_html=True)
+        if st.button("Return home", key="return-home", type="tertiary"):
+            _save(reset_state())
+            st.rerun()
         render_messages(state.messages)
-        render_contextual_actions(contextual_actions(state))
-        selected_choice = render_choice_chips(available_choices(state), state.step_index)
+        state_token = f"{state.current_step or 'refinement'}-{len(state.messages)}"
+        selected_action = render_contextual_actions(contextual_actions(state), state_token)
+        selected_choice = render_choice_chips(available_choices(state), state_token)
         follow_up = st.chat_input(
             "Share an answer or ask a follow-up",
-            key=f"active-chat-input-{state.step_index}",
+            key=f"active-chat-input-{state_token}",
         )
         if selected_choice is not None:
             _save(advance_with_choice(state, selected_choice))
+            st.rerun()
+        if selected_action is not None:
+            _save(advance_with_action(state, selected_action))
             st.rerun()
         if follow_up:
             _save(advance_with_text(state, follow_up))
@@ -101,6 +111,9 @@ def _render_active(state: PrototypeState) -> None:
             ),
             unsafe_allow_html=True,
         )
+        if st.query_params.get("review") == "1":
+            with st.expander("Developer review", expanded=False):
+                st.json(developer_review_state(state))
 
 
 def main() -> None:
