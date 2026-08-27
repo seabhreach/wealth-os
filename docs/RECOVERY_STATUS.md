@@ -44,9 +44,25 @@ restored, but exact original wording may differ.
 
 ## Known Missing Post-v0.2 Implementation
 
-- `experience/`
+The live Experience implementation, deterministic adapters, and adaptive conversation services
+remain missing.
 
-The post-v0.2 Experience implementation was not present in GitHub and has not been reconstructed.
+## Experience Prototype Shell Reconstruction
+
+The first conversation-first Experience application shell has been reconstructed from the
+recovered product documentation and project conversation history. It is a mock-only Streamlit
+prototype with five scripted goal journeys, a minimal Home, side-by-side conversation and
+Workspace views, progressive Financial Picture evidence, and isolated illustrative data.
+
+- The shell is mock-only and does not use live Financial Picture data.
+- There is no integration with simulation, tax, reporting, the Decision Engine, or other live
+  financial services.
+- No LLM or external AI service is used.
+- Exact original prototype code could not be recovered.
+- The reconstructed behavior follows the approved product and experience design intent.
+
+The shell validates experience behavior only. It does not change or extend v0.2 financial
+calculations or semantics.
 
 ## Validation Results
 

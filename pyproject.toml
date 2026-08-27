@@ -44,7 +44,7 @@ Documentation = "https://github.com/wealth-os/wealth-os#readme"
 Repository = "https://github.com/wealth-os/wealth-os"
 
 [tool.setuptools.packages.find]
-include = ["engine*", "dashboard*"]
+include = ["engine*", "dashboard*", "experience*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
@@ -54,7 +54,7 @@ addopts = ["-ra", "--strict-config", "--strict-markers"]
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-src = ["engine", "dashboard", "tests"]
+src = ["engine", "dashboard", "experience", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
@@ -64,7 +64,7 @@ known-first-party = ["dashboard", "engine"]
 
 [tool.mypy]
 python_version = "3.13"
-files = ["engine", "dashboard", "tests"]
+files = ["engine", "dashboard", "experience", "tests"]
 strict = true
 warn_unused_configs = true
 show_error_codes = true
