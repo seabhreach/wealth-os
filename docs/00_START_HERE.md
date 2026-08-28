@@ -8,10 +8,12 @@ Read Wealth OS documentation according to its purpose:
    principles, language, trust, and experience direction.
 2. [RFC-012_DISCOVERY_MODEL.md](RFC-012_DISCOVERY_MODEL.md) is the active architecture for future
    conversational discovery and information requirements.
-3. [../README.md](../README.md), [TAX_ENGINE.md](TAX_ENGINE.md), and
+3. [RFC-013_WORKSPACE_COMPOSITION_MODEL.md](RFC-013_WORKSPACE_COMPOSITION_MODEL.md) is the active
+   architecture for assembling deterministic evidence into validated visual Workspaces.
+4. [../README.md](../README.md), [TAX_ENGINE.md](TAX_ENGINE.md), and
    [BASELINE_AUDIT_v0.2.md](BASELINE_AUDIT_v0.2.md) are current behavioral authority for the
    released v0.2 implementation.
-4. Approved RFCs define bounded future architecture. They do not change v0.2 behavior until an
+5. Approved RFCs define bounded future architecture. They do not change v0.2 behavior until an
    implementation task explicitly updates behavior, tests, and released documentation.
 
 If product or experience documentation conflicts, Product Vision takes precedence unless an
@@ -24,6 +26,7 @@ behavioral authority, preserve current behavior until a separately approved beha
 - [RFC-010_DECISION_ENGINE.md](RFC-010_DECISION_ENGINE.md)
 - [RFC-011_THE_WEALTH_OS_EXPERIENCE.md](RFC-011_THE_WEALTH_OS_EXPERIENCE.md)
 - [RFC-012_DISCOVERY_MODEL.md](RFC-012_DISCOVERY_MODEL.md)
+- [RFC-013_WORKSPACE_COMPOSITION_MODEL.md](RFC-013_WORKSPACE_COMPOSITION_MODEL.md)
 - [CONVERSATION_AND_WORKSPACE_MODEL.md](CONVERSATION_AND_WORKSPACE_MODEL.md)
 - [FIRST_RUN_JOURNEY.md](FIRST_RUN_JOURNEY.md)
 - [EXPERIENCE_PROTOTYPE.md](EXPERIENCE_PROTOTYPE.md)

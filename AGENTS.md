@@ -16,8 +16,9 @@ Read current authority in this order:
 5. `docs/TAX_ENGINE.md`
 6. `docs/BASELINE_AUDIT_v0.2.md`
 7. `docs/RFC-011_THE_WEALTH_OS_EXPERIENCE.md`
-8. `docs/CONVERSATION_AND_WORKSPACE_MODEL.md`
-9. the active RFC, work order, or recovery task
+8. `docs/RFC-013_WORKSPACE_COMPOSITION_MODEL.md`
+9. `docs/CONVERSATION_AND_WORKSPACE_MODEL.md`
+10. the active RFC, work order, or recovery task
 
 `docs/MVP_SPEC.md` and `docs/archive/` are historical context. They do not override current
 product authority or released v0.2 behavioral authority.
@@ -43,6 +44,16 @@ Future conversational features must be built on the Discovery Model in
 - The platform owns deterministic requirements, validation, confidence, and confirmation.
 - Deterministic engines remain independent of conversational wording.
 - The Question Library is a transitional prototype, example, and test artifact only.
+
+## Workspace Composition Authority
+
+Future visual Workspaces must follow `docs/RFC-013_WORKSPACE_COMPOSITION_MODEL.md`.
+
+- Components reference structured evidence; they do not contain independently calculated truth.
+- AI may propose only from the bounded visual and action grammar.
+- The platform validates Composition Policy, evidence references, controls, accessibility,
+  limitations, and provenance before rendering.
+- Renderers format and arrange evidence but do not perform financial calculations.
 
 ## Engineering Rules
 

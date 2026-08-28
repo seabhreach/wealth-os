@@ -146,12 +146,11 @@ The staged model applies at every width. During discovery, Conversation occupies
 generation, the Workspace occupies the screen and Conversation can reopen secondarily. Narrow
 views must not compress permanent Conversation and Workspace columns beside one another.
 
-## Workspace Composition Follow-up
+## Workspace Composition Authority
 
-A subsequent `WORKSPACE_COMPOSITION_MODEL` design and architecture task must define available
-visual component types, deterministic evidence mappings, composition authority, AI selection
-boundaries, provenance exposure, validated scenario-control mappings, and reproducible layouts.
-This RFC does not fully design or implement that model.
+[RFC-013](RFC-013_WORKSPACE_COMPOSITION_MODEL.md) defines the bounded visual vocabulary,
+deterministic evidence mappings, Composition Policy, AI selection boundaries, validated scenario
+actions, provenance, accessibility, and reproducibility requirements for future Workspaces.
 
 ## Confidence Model
 

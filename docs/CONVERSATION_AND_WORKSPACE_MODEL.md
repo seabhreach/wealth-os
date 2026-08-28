@@ -125,10 +125,9 @@ funding timeline; cash decline may need a cash trajectory and annual funding bre
 equity may need concentration and vesting visuals; property may need liquidity and allocation
 views; higher spending may need a spending delta and sustainability comparison.
 
-The future `WORKSPACE_COMPOSITION_MODEL` must define visual component types, evidence-to-visual
-mappings, composition authority, AI selection boundaries, provenance, validated override
-controls, and reproducible layouts. This document records the need for that model without fully
-designing it.
+[RFC-013](RFC-013_WORKSPACE_COMPOSITION_MODEL.md) defines the bounded visual component vocabulary,
+evidence-to-visual mappings, composition authority, AI selection boundaries, provenance,
+validated scenario actions, and reproducibility requirements.
 
 ## Conversation After Workspace Creation
 

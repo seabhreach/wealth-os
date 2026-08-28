@@ -72,7 +72,8 @@ Wealth OS should show financial questions visually whenever visual representatio
 understanding. Visuals are selected because they help answer the current question, not because the
 product needs a generic dashboard. A retirement question may need a wealth trajectory and funding
 timeline; a cash question may need a cash trajectory and annual funding breakdown. The composition
-must remain evidence-backed and reproducible.
+must remain evidence-backed and reproducible. The bounded composition architecture is defined by
+[RFC-013](RFC-013_WORKSPACE_COMPOSITION_MODEL.md).
 
 ### Financial Picture is the persistent source of truth
 
