@@ -25,7 +25,21 @@ def format_display_value(
     if isinstance(value, int) and unit.startswith("EUR"):
         suffix = "/year" if unit.endswith("/year") else ""
         return f"€{value:,.0f}{suffix}"
+    if isinstance(value, int) and unit.startswith("years"):
+        return f"{value} years"
     return str(value)
+
+
+def format_compact_currency(value: Decimal | int) -> str:
+    """Format a monetary evidence value compactly without changing its value."""
+
+    decimal_value = Decimal(value)
+    absolute = abs(decimal_value)
+    if absolute >= Decimal("1000000"):
+        return f"€{decimal_value / Decimal('1000000'):.2f}m"
+    if absolute >= Decimal("1000"):
+        return f"€{decimal_value / Decimal('1000'):.0f}k"
+    return f"€{decimal_value:,.0f}"
 
 
 def format_table_value(

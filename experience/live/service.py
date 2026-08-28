@@ -33,7 +33,12 @@ from experience.live.models import (
     TimelinePoint,
 )
 from experience.live.provenance import build_provenance, tax_rule_identifier
+from experience.live.scenario_actions import (
+    g001_scenario_override,
+    supported_g001_retirement_ages,
+)
 from experience.models import EvidencePurpose, GoalId, InformationStatus
+from experience.workspace_composition.models import SetScenarioValue
 
 LIVE = EvidenceMode.LIVE
 KNOWN = InformationStatus.KNOWN
@@ -68,17 +73,23 @@ class LiveExperienceService:
 
         return tuple(year.calendar_year for year in self._baseline_result.projection)
 
+    @property
+    def supported_retirement_ages(self) -> tuple[int, ...]:
+        """Return the bounded G-001 retirement-age control values."""
+
+        return supported_g001_retirement_ages(self._baseline.configuration)
+
     def retire_earlier(self, retirement_age: int = 58) -> LiveWorkspace:
         """Compare baseline with one validated temporary retirement-age override."""
 
         config = self._baseline.configuration
-        if not config.household.current_age <= retirement_age <= config.household.life_expectancy:
-            raise ValueError("Retirement age must be within the validated projection horizon.")
+        action = SetScenarioValue("retirement_age", retirement_age)
+        override = g001_scenario_override(config, action)
         scenario = run_scenario(
             config,
             AdvisorScenario(
                 f"Retire at {retirement_age}",
-                ScenarioOverride(retirement_age=retirement_age),
+                override,
             ),
         )
         baseline = self._baseline_result
@@ -92,7 +103,7 @@ class LiveExperienceService:
                 EvidencePurpose.ANSWER,
                 LIVE,
                 _retirement_answer(scenario),
-                ("g001-age", "g001-net-worth"),
+                ("g001-age", "g001-funding-status"),
             ),
             ComparisonEvidence(
                 "g001-age",
@@ -107,6 +118,30 @@ class LiveExperienceService:
                 "years old",
             ),
             ComparisonEvidence(
+                "g001-funding-status",
+                "Funding horizon",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Modelled funding outcome",
+                "Baseline",
+                _funding_status(baseline),
+                "Explored",
+                _funding_status(scenario),
+                "",
+            ),
+            ComparisonEvidence(
+                "g001-liquid-final",
+                "Final liquid assets",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Liquid assets at life expectancy",
+                "Baseline",
+                baseline.metrics.liquid_assets_at_life_expectancy,
+                "Explored",
+                scenario.metrics.liquid_assets_at_life_expectancy,
+                "EUR",
+            ),
+            ComparisonEvidence(
                 "g001-net-worth",
                 "Final modelled net worth",
                 EvidencePurpose.COMPARISON,
@@ -119,6 +154,24 @@ class LiveExperienceService:
                 "EUR",
             ),
             TimelineEvidence(
+                "g001-liquid-baseline-series",
+                "Baseline liquid assets",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                f"Baseline · retire at {baseline.metrics.retirement_age}",
+                "EUR",
+                _projection_liquid_points(baseline),
+            ),
+            TimelineEvidence(
+                "g001-liquid-scenario-series",
+                "Explored liquid assets",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                f"Explored · retire at {scenario.metrics.retirement_age}",
+                "EUR",
+                _projection_liquid_points(scenario),
+            ),
+            TimelineEvidence(
                 "g001-liquid-timeline",
                 "Liquid-assets trajectory",
                 EvidencePurpose.EXPLANATION,
@@ -126,6 +179,21 @@ class LiveExperienceService:
                 "Liquid assets",
                 "EUR",
                 _selected_liquid_points(scenario),
+            ),
+            *_retirement_milestone_evidence(baseline, scenario),
+            *_retirement_tradeoff_evidence(baseline, scenario),
+            NarrativeEvidence(
+                "g001-explanation",
+                "Why?",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                _retirement_explanation(scenario),
+                (
+                    "g001-liquid-scenario-series",
+                    "g001-milestone-explored-retirement",
+                    "g001-milestone-private-pension",
+                    "g001-milestone-state-pension",
+                ),
             ),
             TableEvidence(
                 "g001-bridge",
@@ -152,6 +220,16 @@ class LiveExperienceService:
                 "Temporary scenario input",
                 KNOWN,
             ),
+            AssumptionEvidence(
+                "g001-spending-assumption",
+                "Retirement spending",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Annual retirement spending",
+                config.assumptions.target_retirement_income,
+                "Validated baseline assumption",
+                KNOWN,
+            ),
             StrategyEvidence(
                 "g001-strategy",
                 "Proposed update",
@@ -172,7 +250,7 @@ class LiveExperienceService:
         )
         return self._workspace(
             GoalId.RETIRE_EARLIER,
-            "Retire Earlier — Live",
+            f"Could I retire at {retirement_age}?",
             evidence,
             overrides,
             (baseline, scenario),
@@ -666,25 +744,191 @@ class LiveExperienceService:
         )
 
 
+def _projection_liquid_points(result: ScenarioResult) -> tuple[TimelinePoint, ...]:
+    """Expose exact annual liquid-assets evidence without interpolation."""
+
+    return tuple(
+        TimelinePoint(year.calendar_year, year.liquid_assets, year.age)
+        for year in result.projection
+    )
+
+
 def _selected_liquid_points(result: ScenarioResult) -> tuple[TimelinePoint, ...]:
     first = result.projection[0]
     retirement = next(year for year in result.projection if not year.employed)
     final = result.projection[-1]
     return tuple(
-        TimelinePoint(year.calendar_year, year.liquid_assets) for year in (first, retirement, final)
+        TimelinePoint(year.calendar_year, year.liquid_assets, year.age)
+        for year in (first, retirement, final)
     )
 
 
 def _retirement_answer(result: ScenarioResult) -> str:
     if result.metrics.retirement_ready:
         return (
-            f"Under the existing v0.2 assumptions, retiring at {result.metrics.retirement_age} "
-            "remains fully funded through the configured life expectancy."
+            f"Yes — under the current assumptions, retiring at {result.metrics.retirement_age} "
+            "remains funded through the planning horizon."
         )
     return (
-        f"Under the existing v0.2 assumptions, retiring at {result.metrics.retirement_age} "
+        f"Under the current assumptions, retiring at {result.metrics.retirement_age} "
         f"first becomes unfunded in {result.metrics.first_unfunded_year}."
     )
+
+
+def _funding_status(result: ScenarioResult) -> str:
+    """Translate the existing readiness result without adding a new metric."""
+
+    if result.metrics.retirement_ready:
+        return "Funded through planning horizon"
+    return f"First unfunded in {result.metrics.first_unfunded_year}"
+
+
+def _retirement_milestone_evidence(
+    baseline: ScenarioResult,
+    scenario: ScenarioResult,
+) -> tuple[MetricEvidence, ...]:
+    """Reference milestones already present in completed scenario projections."""
+
+    baseline_retirement = next(year for year in baseline.projection if not year.employed)
+    explored_retirement = next(year for year in scenario.projection if not year.employed)
+    private_pension = next(
+        (year for year in scenario.projection if year.private_pension_income > 0),
+        None,
+    )
+    state_pension = next(
+        (year for year in scenario.projection if year.state_pension_income > 0),
+        None,
+    )
+    evidence = [
+        MetricEvidence(
+            "g001-milestone-explored-retirement",
+            "Explored retirement",
+            EvidencePurpose.EXPLANATION,
+            LIVE,
+            "Stop employment",
+            explored_retirement.calendar_year,
+            "calendar year",
+            f"Age {explored_retirement.age}",
+        ),
+        MetricEvidence(
+            "g001-milestone-baseline-retirement",
+            "Baseline retirement",
+            EvidencePurpose.EXPLANATION,
+            LIVE,
+            "Current plan",
+            baseline_retirement.calendar_year,
+            "calendar year",
+            f"Age {baseline_retirement.age}",
+        ),
+    ]
+    if private_pension is not None:
+        evidence.append(
+            MetricEvidence(
+                "g001-milestone-private-pension",
+                "Private pension begins",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "First modelled private-pension income",
+                private_pension.calendar_year,
+                "calendar year",
+                f"Age {private_pension.age}",
+            )
+        )
+    if state_pension is not None:
+        evidence.append(
+            MetricEvidence(
+                "g001-milestone-state-pension",
+                "State Pension begins",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "First modelled State Pension income",
+                state_pension.calendar_year,
+                "calendar year",
+                f"Age {state_pension.age}",
+            )
+        )
+    return tuple(evidence)
+
+
+def _retirement_tradeoff_evidence(
+    baseline: ScenarioResult,
+    scenario: ScenarioResult,
+) -> tuple[InsightEvidence, ...]:
+    """Describe bounded comparisons already present in scenario results."""
+
+    if scenario.metrics.retirement_age < baseline.metrics.retirement_age:
+        time_observation = (
+            f"Employment stops at age {scenario.metrics.retirement_age} instead of the baseline "
+            f"age {baseline.metrics.retirement_age}."
+        )
+    elif scenario.metrics.retirement_age > baseline.metrics.retirement_age:
+        time_observation = (
+            f"Employment continues until age {scenario.metrics.retirement_age} instead of the "
+            f"baseline age {baseline.metrics.retirement_age}."
+        )
+    else:
+        time_observation = "The explored retirement age matches the baseline plan."
+
+    if scenario.metrics.final_net_worth < baseline.metrics.final_net_worth:
+        financial_observation = "Final modelled net worth is lower than the baseline path."
+    elif scenario.metrics.final_net_worth > baseline.metrics.final_net_worth:
+        financial_observation = "Final modelled net worth is higher than the baseline path."
+    else:
+        financial_observation = "Final modelled net worth matches the baseline path."
+
+    return (
+        InsightEvidence(
+            "g001-tradeoff-time",
+            "Time",
+            EvidencePurpose.TRADE_OFF,
+            LIVE,
+            time_observation,
+            ("g001-age",),
+        ),
+        InsightEvidence(
+            "g001-tradeoff-financial",
+            "Financial effect",
+            EvidencePurpose.TRADE_OFF,
+            LIVE,
+            financial_observation,
+            ("g001-net-worth", "g001-liquid-final"),
+        ),
+        InsightEvidence(
+            "g001-tradeoff-constant",
+            "Held constant",
+            EvidencePurpose.TRADE_OFF,
+            LIVE,
+            "The annual retirement-spending assumption is unchanged in this comparison.",
+            ("g001-spending-assumption",),
+        ),
+    )
+
+
+def _retirement_explanation(result: ScenarioResult) -> str:
+    """Explain the bridge using only milestones and funding evidence in the projection."""
+
+    retirement = next(year for year in result.projection if not year.employed)
+    private_pension = next(
+        (year for year in result.projection if year.private_pension_income > 0),
+        None,
+    )
+    state_pension = next(
+        (year for year in result.projection if year.state_pension_income > 0),
+        None,
+    )
+    sentences = [f"Employment income stops at age {retirement.age} in {retirement.calendar_year}."]
+    if private_pension is not None and private_pension.calendar_year > retirement.calendar_year:
+        sentences.append(
+            "Liquid assets help fund spending until private-pension income first appears in "
+            f"{private_pension.calendar_year}."
+        )
+    elif private_pension is not None:
+        sentences.append(
+            f"Private-pension income first appears in {private_pension.calendar_year}."
+        )
+    if state_pension is not None:
+        sentences.append(f"State Pension income first appears in {state_pension.calendar_year}.")
+    return " ".join(sentences)
 
 
 def _spending_answer(result: ScenarioResult) -> str:

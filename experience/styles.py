@@ -116,6 +116,31 @@ div[data-testid="stColumn"]:has(.wos-workspace) {{ border-left: 1px solid var(--
 .wos-live-table th, .wos-live-table td {{ padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--wos-line); text-align: left; color: var(--wos-ink); }}
 .wos-live-table th {{ color: var(--wos-muted); font-weight: 650; }}
 
+.wos-visual-workspace {{ max-width: 1180px; margin: 1rem auto 0; }}
+.wos-visual-kicker {{ color: var(--wos-accent); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2.5rem; }}
+.wos-visual-title {{ color: var(--wos-ink); font-size: clamp(2.5rem, 5vw, 4.7rem); line-height: 1.02; letter-spacing: -0.055em; margin: 0.7rem 0 1rem; max-width: 900px; }}
+.wos-visual-answer {{ color: var(--wos-ink); font-size: clamp(1.3rem, 2.2vw, 1.85rem); line-height: 1.42; max-width: 900px; margin: 0 0 0.9rem; }}
+.wos-scenario-context {{ color: var(--wos-muted); font-size: 0.9rem; margin: 0 0 1.5rem; }}
+.wos-visual-section-heading {{ border-top: 1px solid var(--wos-line); padding-top: 2rem; margin-top: 3rem; }}
+.wos-visual-section-heading h2 {{ color: var(--wos-ink); font-size: clamp(1.45rem, 2vw, 2rem); letter-spacing: -0.025em; margin: 0; }}
+.wos-visual-section-heading p {{ color: var(--wos-muted); font-size: 0.95rem; line-height: 1.55; max-width: 700px; margin: 0.55rem 0 0; }}
+.wos-visual-copy {{ color: var(--wos-ink); font-size: 1.15rem; line-height: 1.7; max-width: 820px; }}
+.wos-chart-summary {{ color: var(--wos-muted); font-size: 0.82rem; line-height: 1.5; max-width: 760px; }}
+.wos-comparison {{ margin-top: 1.2rem; }}
+.wos-comparison-row {{ display: grid; grid-template-columns: minmax(12rem, 1.4fr) 1fr 1fr; gap: 1.5rem; align-items: baseline; padding: 0.8rem 0; border-bottom: 1px solid var(--wos-line); font-size: 1rem; }}
+.wos-comparison-label {{ color: var(--wos-muted); }}
+.wos-comparison-row small {{ display: block; color: var(--wos-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.18rem; }}
+.wos-timeline {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 1.6rem; }}
+.wos-milestone {{ position: relative; border-top: 2px solid var(--wos-line); padding: 1.1rem 1rem 0 0; min-height: 6.5rem; }}
+.wos-milestone::before {{ content: ""; position: absolute; top: -0.38rem; left: 0; width: 0.65rem; height: 0.65rem; border-radius: 50%; background: var(--wos-accent); }}
+.wos-milestone-year {{ display: block; color: var(--wos-muted); font-size: 0.76rem; margin-bottom: 0.45rem; }}
+.wos-milestone strong, .wos-milestone > span:last-child {{ display: block; color: var(--wos-ink); font-size: 0.92rem; }}
+.wos-milestone > span:last-child {{ color: var(--wos-muted); font-size: 0.8rem; margin-top: 0.25rem; }}
+.wos-tradeoff-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.4rem; margin-top: 1.4rem; }}
+.wos-tradeoff-item > span {{ color: var(--wos-accent); font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }}
+.wos-tradeoff-item p {{ color: var(--wos-ink); line-height: 1.55; margin: 0.5rem 0; }}
+.wos-detail-rule {{ border-top: 1px solid var(--wos-line); margin-top: 3rem; padding-top: 1rem; }}
+
 div[data-testid="stChatInput"] textarea {{ color: var(--wos-input-fg) !important; background: var(--wos-input-bg) !important; caret-color: var(--wos-input-fg) !important; }}
 div[data-testid="stChatInput"] textarea::placeholder {{ color: var(--wos-placeholder) !important; opacity: 1; }}
 div[data-testid="stChatInput"] {{ border-color: var(--wos-line); background: var(--wos-input-bg); }}
@@ -134,11 +159,18 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-picture-row, .wos-evidence-row {{ grid-template-columns: minmax(7rem, 1fr) 1.25fr auto; }}
   .wos-evidence-row {{ grid-template-columns: minmax(7rem, 1fr) 1.25fr; }}
   .wos-home {{ margin-top: 3vh; }}
+  .wos-visual-workspace {{ max-width: 100%; }}
+  .wos-tradeoff-grid {{ grid-template-columns: 1fr; gap: 0.8rem; }}
+  .wos-timeline {{ grid-template-columns: 1fr; }}
+  .wos-milestone {{ border-top: 0; border-left: 2px solid var(--wos-line); padding: 0 0 1.5rem 1.2rem; min-height: 0; }}
+  .wos-milestone::before {{ top: 0.2rem; left: -0.4rem; }}
 }}
 
 @media (max-width: 700px) {{
   .wos-picture-row, .wos-evidence-row {{ grid-template-columns: 1fr; gap: 0.2rem; padding: 0.65rem 0; }}
   .wos-recent-card {{ min-height: auto; }}
+  .wos-comparison-row {{ grid-template-columns: 1fr 1fr; gap: 0.45rem 1rem; }}
+  .wos-comparison-label {{ grid-column: 1 / -1; }}
 }}
 </style>
 """

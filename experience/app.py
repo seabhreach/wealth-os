@@ -11,6 +11,7 @@ from experience.components.chat import (
     render_contextual_actions,
     render_messages,
 )
+from experience.components.g001_visual_workspace import render_g001_visual_workspace
 from experience.components.live_controls import live_workspace_for_goal
 from experience.components.live_workspace import render_live_workspace
 from experience.components.recent_workspaces import render_recent_workspaces
@@ -33,6 +34,7 @@ from experience.review import developer_review_state
 from experience.styles import apply_styles
 from experience.widget_keys import widget_key
 from experience.workspace import visible_sections, workspace_status, workspace_title
+from experience.workspace_composition import compose_g001_workspace
 
 STATE_KEY = "wealth_os_experience_state"
 MODE_KEY = "wealth_os_experience_mode"
@@ -168,6 +170,9 @@ def _render_live_home() -> None:
 
 def _render_live_active(goal_id: GoalId) -> None:
     service = LiveExperienceService.from_example(Path(__file__).resolve().parents[1])
+    if goal_id is GoalId.RETIRE_EARLIER:
+        _render_g001_workspace(service)
+        return
     conversation_column, workspace_column = st.columns((0.82, 1.18), gap="large")
     with conversation_column:
         st.markdown('<div class="wos-pane-label">Explore</div>', unsafe_allow_html=True)
@@ -188,6 +193,27 @@ def _render_live_active(goal_id: GoalId) -> None:
         render_live_workspace(workspace)
 
 
+def _render_g001_workspace(service: LiveExperienceService) -> None:
+    """Render the retirement question as one full-width visual Workspace."""
+
+    if st.button("Return to live goals", key="return-live-home", type="tertiary"):
+        st.session_state.pop(LIVE_GOAL_KEY, None)
+        st.query_params.clear()
+        st.rerun()
+    allowed = service.supported_retirement_ages
+    stored_age = st.session_state.get("g001-retirement-age", 58)
+    explored_age = stored_age if isinstance(stored_age, int) and stored_age in allowed else 58
+    workspace = service.retire_earlier(explored_age)
+    baseline_age = service.baseline.configuration.household.planned_retirement_age
+    spec = compose_g001_workspace(
+        workspace,
+        allowed_retirement_ages=allowed,
+        baseline_retirement_age=baseline_age,
+        explored_retirement_age=explored_age,
+    )
+    render_g001_visual_workspace(spec, workspace)
+
+
 def _prototype_mode() -> str:
     with st.expander("Review mode", expanded=False):
         st.caption("Switch between illustrative and live-baseline evidence.")
@@ -205,6 +231,10 @@ def main() -> None:
 
     st.set_page_config(page_title="Wealth OS Experience", layout="wide")
     apply_styles()
+    if st.query_params.get("workspace") == "g001":
+        service = LiveExperienceService.from_example(Path(__file__).resolve().parents[1])
+        _render_g001_workspace(service)
+        return
     mode = _prototype_mode()
     if mode == LIVE_MODE:
         selected = st.session_state.get(LIVE_GOAL_KEY)

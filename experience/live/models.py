@@ -98,6 +98,7 @@ class TimelinePoint:
 
     period: int
     value: Decimal
+    age: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
