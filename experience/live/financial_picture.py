@@ -52,6 +52,8 @@ def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
             "Retirement spending",
             configuration.assumptions.target_retirement_income,
         ),
+        _item("employment_salary", "Annual employment income", configuration.employment.salary),
+        _item("annual_savings", "Annual saving", configuration.employment.annual_savings),
         _item("cash", "Cash", configuration.investments.cash_balance),
         _item("investments", "ETF investments", configuration.investments.etf_value),
         _item(

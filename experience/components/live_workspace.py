@@ -25,29 +25,42 @@ from experience.live.models import (
 
 
 def render_live_workspace(workspace: LiveWorkspace) -> None:
-    """Arrange existing evidence answer-first without deriving financial values."""
+    """Render a clean full-width interim Workspace from immutable evidence."""
 
-    st.markdown('<div class="wos-pane-label">Workspace</div>', unsafe_allow_html=True)
+    st.markdown('<main class="wos-interim-workspace">', unsafe_allow_html=True)
+    st.markdown('<div class="wos-visual-kicker">Workspace</div>', unsafe_allow_html=True)
     st.markdown(
         f'<div class="wos-workspace-title">{escape(workspace.title)}</div>', unsafe_allow_html=True
-    )
-    st.markdown(
-        '<div class="wos-live-badge">Live baseline · read only</div>', unsafe_allow_html=True
     )
 
     primary, details, supporting = _evidence_groups(workspace.evidence)
     for evidence in primary:
         _render_evidence(evidence)
     if details:
-        with st.expander("Supporting details", expanded=False):
-            for evidence in details:
-                _render_evidence(evidence)
-    if workspace.picture_item_keys:
-        with st.expander("Financial Picture details", expanded=False):
+        st.markdown(
+            '<div class="wos-visual-section-heading"><h2>Explanation</h2></div>',
+            unsafe_allow_html=True,
+        )
+        for evidence in details[:2]:
+            _render_evidence(evidence)
+    with st.expander("About this projection", expanded=False):
+        if workspace.picture_item_keys:
+            st.markdown("#### Assumptions")
             _render_financial_picture(workspace)
-    for evidence in supporting:
-        _render_evidence(evidence)
-    _render_provenance(workspace)
+        remaining = details[2:]
+        if remaining:
+            st.markdown("#### Supporting figures")
+            for evidence in remaining:
+                _render_evidence(evidence)
+        limitations = tuple(item for item in supporting if isinstance(item, LimitationEvidence))
+        assumptions = tuple(item for item in supporting if not isinstance(item, LimitationEvidence))
+        for evidence in assumptions:
+            _render_evidence(evidence)
+        if limitations:
+            st.markdown("#### Limitations")
+            for evidence in limitations:
+                _render_evidence(evidence)
+    st.markdown("</main>", unsafe_allow_html=True)
 
 
 def _evidence_groups(
@@ -110,7 +123,7 @@ def _render_evidence(evidence: LiveEvidence) -> None:
     elif isinstance(evidence, AssumptionEvidence):
         _rows(
             evidence.title,
-            f"{evidence.source} · {evidence.confidence.value}",
+            "From your Financial Picture",
             ((evidence.label, format_display_value(evidence.value)),),
         )
     elif isinstance(evidence, StrategyEvidence):
@@ -133,29 +146,11 @@ def _render_financial_picture(workspace: LiveWorkspace) -> None:
     rows = tuple(
         (
             item.label,
-            f"{format_display_value(item.value, _unit_for_key(item.key))} · {item.status.value}",
+            format_display_value(item.value, _unit_for_key(item.key)),
         )
         for item in items
     )
-    _rows("Relevant Financial Picture", "Baseline data · read only", rows)
-
-
-def _render_provenance(workspace: LiveWorkspace) -> None:
-    provenance = workspace.provenance
-    with st.expander("Provenance", expanded=False):
-        st.markdown(
-            "\n".join(
-                (
-                    f"- Baseline: `{provenance.baseline_identifier}`",
-                    f"- Financial Picture: `{provenance.financial_picture_fingerprint}`",
-                    f"- Goal: `{provenance.goal_id.value}`",
-                    f"- Overrides: `{dict(provenance.scenario_overrides)}`",
-                    f"- Simulation: `{provenance.simulation_version}`",
-                    f"- Tax rules: `{provenance.tax_rule_identifier or 'disabled'}`",
-                    f"- Result: `{provenance.result_fingerprint}`",
-                )
-            )
-        )
+    _rows("Relevant Financial Picture", "Values used for this illustration", rows)
 
 
 def _section(title: str, summary: str) -> None:

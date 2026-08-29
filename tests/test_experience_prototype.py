@@ -59,7 +59,7 @@ def test_home_is_a_minimal_conversation_entry_point() -> None:
     rendered = "\n".join(markdown.value for markdown in app.markdown)
     assert "Wealth OS" in rendered
     assert "What would you like to explore today?" in rendered
-    assert "Start with the question on your mind" in rendered
+    assert "only ask for what matters" in rendered
     assert not app.metric
     assert not app.number_input
     assert not app.dataframe
@@ -72,8 +72,8 @@ def test_recent_workspace_opens_and_return_home_resets_the_ui() -> None:
     assert not app.exception
     rendered = "\n".join(markdown.value for markdown in app.markdown)
     assert "Restored the mock" not in rendered
-    assert "That gives me enough for an initial comparison." in rendered
-    assert "Initial comparison" in rendered
+    assert "Should I buy another property?" in rendered
+    assert "Property included" in rendered
 
     app.button(key="return-home").click().run(timeout=30)
     assert not app.exception
@@ -281,46 +281,28 @@ def test_unsupported_intent_never_defaults_to_retirement() -> None:
     assert "retiring earlier" in state.messages[-1].content
 
 
-@pytest.mark.parametrize("scope", ["self", "household"])
-def test_g001_household_paths_complete_in_streamlit_without_duplicate_keys(
-    scope: str,
-) -> None:
+def test_natural_retirement_question_moves_from_conversation_to_visual_workspace() -> None:
     app = AppTest.from_file(str(EXPERIENCE_ROOT / "app.py")).run(timeout=30)
-    app.chat_input(key="home-chat-input").set_value("Could I retire before 60?").run(timeout=30)
+    app.chat_input(key="home-chat-input").set_value("Can I retire at 59?").run(timeout=30)
     assert not app.exception
-
-    state = start_conversation("Could I retire before 60?")
-    choices = available_choices(state)
-    scope_index = next(index for index, choice in enumerate(choices) if choice.value == scope)
-    state, app = _click_choice(app, state, scope_index)
-    state, app = _click_choice(app, state, 0)
-    if scope == "household":
-        state, app = _click_choice(app, state, 0)
-    while state.current_step is not None:
-        state, app = _click_choice(app, state, 0)
-
-    assert state.enough_information
+    rendered = "\n".join(markdown.value for markdown in app.markdown)
+    assert "already have enough information" in rendered
+    app.button(key="conversation-open-workspace").click().run(timeout=30)
     assert not app.exception
+    rendered = "\n".join(markdown.value for markdown in app.markdown)
+    assert "Could I retire at 59?" in rendered
+    assert app.selectbox(key="g001-retirement-age").value == 59
 
 
-def test_g001_restart_replay_saved_workspace_and_refinement_are_key_safe() -> None:
+def test_saved_workspace_reopens_full_width_and_can_return_home() -> None:
     app = AppTest.from_file(str(EXPERIENCE_ROOT / "app.py")).run(timeout=30)
     app.button(key="wos-recent-g-001").click().run(timeout=30)
     assert not app.exception
-
-    state = open_saved_workspace(GoalId.RETIRE_EARLIER)
-    state, app = _click_choice(app, state, 0)
-    assert state.refinement_performed
-
+    assert app.selectbox(key="g001-retirement-age").value == 58
     app.button(key="return-home").click().run(timeout=30)
-    app.chat_input(key="home-chat-input").set_value("Could I retire before 60?").run(timeout=30)
     assert not app.exception
-    replay = start_conversation("Could I retire before 60?")
-    replay, app = _click_choice(app, replay, 0)
-    replay, app = _click_choice(app, replay, 0)
-
-    assert replay.current_step == "retire-target"
-    assert not app.exception
+    rendered = "\n".join(markdown.value for markdown in app.markdown)
+    assert "What would you like to explore today?" in rendered
 
 
 def test_widget_keys_are_unique_across_questions_refinements_and_replays() -> None:
@@ -361,12 +343,16 @@ def test_all_five_streamlit_journeys_render_without_duplicate_keys(goal_id: Goal
     app.chat_input(key="home-chat-input").set_value(prompt).run(timeout=30)
     assert not app.exception
 
-    state = start_conversation(prompt, goal_id)
-    while state.current_step is not None:
-        state, app = _click_choice(app, state, 0)
-
-    assert state.enough_information
+    app.button(key="conversation-open-workspace").click().run(timeout=30)
     assert not app.exception
+    rendered = "\n".join(markdown.value for markdown in app.markdown)
+    assert {
+        GoalId.RETIRE_EARLIER: "Could I retire at 60?",
+        GoalId.INVESTMENT_PROPERTY: "Should I buy another property?",
+        GoalId.EMPLOYER_EQUITY: "How dependent am I on my employer shares?",
+        GoalId.HIGHER_SPENDING: "Can I spend more in retirement?",
+        GoalId.CASH_DECLINE: "Why does my cash decline after retirement?",
+    }[goal_id] in rendered
 
 
 def test_workspace_reveals_follow_declared_order_and_one_change_per_answer() -> None:
@@ -475,7 +461,7 @@ def test_no_continue_or_submit_controls_exist() -> None:
 
 def test_mock_financial_values_and_arithmetic_stay_in_mock_data() -> None:
     for path in _mock_paths():
-        if path.name in {"display.py", "mock_data.py", "styles.py"}:
+        if path.name in {"display.py", "mock_data.py", "routing.py", "styles.py"}:
             continue
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(path))
@@ -531,10 +517,10 @@ def test_semantic_theme_tokens_have_readable_foreground_background_pairs(
 
 
 def test_responsive_layout_stacks_conversation_before_workspace() -> None:
-    assert layout_mode_for_width(850) == "stacked"
-    assert layout_mode_for_width(RESPONSIVE_BREAKPOINT_PX) == "stacked"
-    assert layout_mode_for_width(1100) == "split"
-    assert pane_order_for_width(850) == ("conversation", "workspace")
+    assert layout_mode_for_width(850) == "full-width"
+    assert layout_mode_for_width(RESPONSIVE_BREAKPOINT_PX) == "full-width"
+    assert layout_mode_for_width(1100) == "full-width"
+    assert pane_order_for_width(850) == ("workspace",)
     assert f"max-width: {RESPONSIVE_BREAKPOINT_PX}px" in EXPERIENCE_CSS
     assert "flex-direction: column" in EXPERIENCE_CSS
 

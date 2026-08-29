@@ -236,7 +236,7 @@ def test_temporary_multi_year_spending_is_an_explicit_limitation() -> None:
 
     assert any(isinstance(item, LimitationEvidence) for item in workspace.evidence)
     assert not any(isinstance(item, ComparisonEvidence) for item in workspace.evidence)
-    assert "no supported override" in repr(workspace.evidence).casefold()
+    assert "not currently supported" in repr(workspace.evidence).casefold()
 
 
 def test_cash_decline_uses_existing_statement_and_trace_for_selected_year() -> None:
@@ -333,29 +333,23 @@ def test_material_override_changes_result_identity() -> None:
     )
 
 
-def test_live_and_mock_modes_are_visibly_separate_in_streamlit() -> None:
+def test_normal_streamlit_experience_hides_engineering_modes_and_provenance() -> None:
     app = AppTest.from_file(str(ROOT / "experience" / "app.py")).run(timeout=30)
-    app.radio(key="wealth_os_experience_mode").set_value("LIVE DETERMINISTIC EXPERIENCE").run(
-        timeout=30
+    app.button(key="wos-recent-g-005").click().run(timeout=30)
+    assert not app.exception
+    rendered = "\n".join(markdown.value for markdown in app.markdown)
+    forbidden = (
+        "Mock Experience",
+        "Live Deterministic Experience",
+        "ScenarioOverride",
+        "WorkspaceSpec",
+        "fingerprint",
+        "v0.2",
+        "recovery",
     )
-
-    assert not app.exception
-    rendered = "\n".join(markdown.value for markdown in app.markdown)
-    assert "Choose a question to explore." in rendered
-    assert "No illustrative evidence" in rendered
-
-    app.button(key="wos-live-goal-g-005").click().run(timeout=30)
-    assert not app.exception
-    rendered = "\n".join(markdown.value for markdown in app.markdown)
-    assert "Live baseline · read only" in rendered
-    assert "Cash Decline Explanation" in rendered
-    assert "Illustrative mock Workspace" not in rendered
-    assert "ScenarioOverride" not in rendered
-    assert "deterministic engine" not in rendered.casefold()
-    assert app.expander
-    renderer_source = LIVE_RENDERER.read_text(encoding="utf-8")
-    assert 'st.expander("Provenance", expanded=False)' in renderer_source
-    assert 'st.expander("Supporting details", expanded=False)' in renderer_source
+    assert all(term not in rendered for term in forbidden)
+    assert "Why does my cash decline after retirement?" in rendered
+    assert {item.label for item in app.expander} == {"About this projection"}
 
 
 def _service() -> LiveExperienceService:

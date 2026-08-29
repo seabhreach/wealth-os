@@ -245,7 +245,7 @@ class LiveExperienceService:
                 "Limitations",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "This illustration retains the existing v0.2 return, tax, pension-access, inflation and longevity assumptions.",
+                "This projection uses your current assumptions for investment returns, inflation, tax, pension access and life expectancy.",
             ),
         )
         return self._workspace(
@@ -277,7 +277,7 @@ class LiveExperienceService:
                     "Answer",
                     EvidencePurpose.ANSWER,
                     LIVE,
-                    "The existing v0.2 model cannot produce a financed-property comparison.",
+                    "The current projection cannot produce a financed-property comparison.",
                     ("g002-financing-limit",),
                 ),
                 LimitationEvidence(
@@ -290,7 +290,7 @@ class LiveExperienceService:
             )
             return self._workspace(
                 GoalId.INVESTMENT_PROPERTY,
-                "Investment Property — Live",
+                "Should I buy another property?",
                 evidence,
                 overrides,
                 baseline,
@@ -321,7 +321,7 @@ class LiveExperienceService:
                 "Answer",
                 EvidencePurpose.ANSWER,
                 LIVE,
-                "The live comparison shows the configured planned property beside an otherwise identical projection with that planned purchase excluded.",
+                "The comparison shows the planned property beside an otherwise identical projection with that purchase excluded.",
                 ("g002-liquidity", "g002-property-value"),
             ),
             ComparisonEvidence(
@@ -389,7 +389,7 @@ class LiveExperienceService:
         )
         return self._workspace(
             GoalId.INVESTMENT_PROPERTY,
-            "Investment Property — Live",
+            "Should I buy another property?",
             evidence,
             overrides,
             (baseline, excluded),
@@ -417,7 +417,7 @@ class LiveExperienceService:
                 "Answer",
                 EvidencePurpose.ANSWER,
                 LIVE,
-                f"The live Workspace compares supported sell-on-vest and retain policies and currently focuses on {focus}.",
+                f"This comparison shows sell-on-vest and retain policies and currently focuses on {focus}.",
                 ("g003-concentration", "g003-final-worth"),
             ),
             ComparisonEvidence(
@@ -462,8 +462,8 @@ class LiveExperienceService:
                 EvidencePurpose.ASSUMPTION,
                 LIVE,
                 "Denominator",
-                "Existing v0.2 net-worth denominator",
-                "Existing v0.2 comparison metric",
+                "Net worth used by the current projection",
+                "Current comparison metric",
                 KNOWN,
             ),
             StrategyEvidence(
@@ -481,12 +481,12 @@ class LiveExperienceService:
                 "Limitations",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "The metric is the existing v0.2 exposure ratio; the Experience does not define a new investable-assets concentration formula. Disposal taxes are not modelled.",
+                "The concentration measure uses the current projection's net-worth definition. Disposal taxes are not modelled.",
             ),
         )
         return self._workspace(
             GoalId.EMPLOYER_EQUITY,
-            "Employer Equity Exposure — Live",
+            "How dependent am I on my employer shares?",
             evidence,
             overrides,
             (sell, retain),
@@ -516,7 +516,7 @@ class LiveExperienceService:
                     "Answer",
                     EvidencePurpose.ANSWER,
                     LIVE,
-                    "The existing v0.2 override supports a permanent spending change, not a temporary multi-year schedule.",
+                    "The current projection supports a permanent spending change, not a temporary multi-year schedule.",
                     ("g004-temporary-limit",),
                 ),
                 LimitationEvidence(
@@ -524,12 +524,12 @@ class LiveExperienceService:
                     "Temporary spending is unsupported",
                     EvidencePurpose.LIMITATION,
                     LIVE,
-                    "No temporary multi-year result is shown because the v0.2 model has no supported override for that schedule.",
+                    "No temporary multi-year result is shown because that schedule is not currently supported.",
                 ),
             )
             return self._workspace(
                 GoalId.HIGHER_SPENDING,
-                "Higher Retirement Spending — Live",
+                "Can I spend more in retirement?",
                 evidence,
                 overrides,
                 baseline,
@@ -618,7 +618,7 @@ class LiveExperienceService:
         )
         return self._workspace(
             GoalId.HIGHER_SPENDING,
-            "Higher Retirement Spending — Live",
+            "Can I spend more in retirement?",
             evidence,
             overrides,
             (baseline, scenario),
@@ -700,12 +700,12 @@ class LiveExperienceService:
                 "Evidence boundary",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "No new Financial Picture data was requested. The explanation is limited to categories exposed by existing v0.2 reporting and trace evidence.",
+                "No new Financial Picture data was requested. The explanation is limited to the available annual cash-flow categories.",
             ),
         )
         return self._workspace(
             GoalId.CASH_DECLINE,
-            "Cash Decline Explanation — Live",
+            "Why does my cash decline after retirement?",
             evidence,
             overrides,
             statement,
@@ -933,7 +933,9 @@ def _retirement_explanation(result: ScenarioResult) -> str:
 
 def _spending_answer(result: ScenarioResult) -> str:
     if result.metrics.retirement_ready:
-        return "The permanent higher-spending scenario remains funded under the existing v0.2 assumptions."
+        return (
+            "The permanent higher-spending scenario remains funded under the current assumptions."
+        )
     return f"The permanent higher-spending scenario first becomes unfunded in {result.metrics.first_unfunded_year}."
 
 

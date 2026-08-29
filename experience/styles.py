@@ -46,16 +46,17 @@ RESPONSIVE_BREAKPOINT_PX = 1050
 
 
 def layout_mode_for_width(width: int) -> str:
-    """Mirror the CSS breakpoint used by the active Experience panes."""
+    """Return the staged shell layout used at every supported width."""
 
-    return "stacked" if width <= RESPONSIVE_BREAKPOINT_PX else "split"
+    _ = width
+    return "full-width"
 
 
-def pane_order_for_width(width: int) -> tuple[str, str]:
-    """Keep conversation before its Workspace in either layout mode."""
+def pane_order_for_width(width: int) -> tuple[str, ...]:
+    """Keep the Workspace singular rather than beside a permanent Conversation pane."""
 
     _ = layout_mode_for_width(width)
-    return ("conversation", "workspace")
+    return ("workspace",)
 
 
 EXPERIENCE_CSS = f"""
@@ -79,6 +80,21 @@ EXPERIENCE_CSS = f"""
 .stApp {{ color: var(--wos-ink); background: var(--wos-page-bg); }}
 .block-container {{ max-width: 1440px; padding-top: 2.5rem; padding-bottom: 3rem; }}
 #MainMenu, footer {{ visibility: hidden; }}
+
+.wos-shell-wordmark {{ color: var(--wos-ink); font-weight: 750; letter-spacing: -0.02em; }}
+.wos-conversation-state {{ max-width: 780px; margin: 10vh auto 0; }}
+.wos-conversation-user {{ color: var(--wos-muted); font-size: 1rem; padding-left: 1rem; border-left: 2px solid var(--wos-line); margin: 2rem 0; }}
+.wos-conversation-answer {{ color: var(--wos-ink); font-size: clamp(1.25rem, 2.2vw, 1.75rem); line-height: 1.5; max-width: 760px; }}
+.wos-enough {{ color: var(--wos-muted); font-size: 1rem; line-height: 1.6; margin: 1.4rem 0 2rem; }}
+.wos-interim-workspace {{ max-width: 1040px; margin: 1rem auto 0; }}
+.wos-picture {{ max-width: 980px; margin: 2.5rem auto 0; }}
+.wos-picture-title {{ color: var(--wos-ink); font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.06; letter-spacing: -0.045em; margin: 0.8rem 0 1rem; }}
+.wos-picture-section {{ display: grid; grid-template-columns: minmax(11rem, 0.7fr) 1.5fr; column-gap: 3rem; padding: 1.6rem 0; border-top: 1px solid var(--wos-line); }}
+.wos-picture-section h2 {{ grid-row: 1 / span 20; color: var(--wos-ink); font-size: 1rem; margin: 0; }}
+.wos-picture-summary-row {{ grid-column: 2; display: flex; justify-content: space-between; gap: 2rem; padding: 0.35rem 0; }}
+.wos-picture-summary-row span {{ color: var(--wos-muted); }}
+.wos-picture-summary-row strong {{ color: var(--wos-ink); text-align: right; font-weight: 600; }}
+.wos-missing {{ grid-column: 2; color: var(--wos-muted); margin: 0; }}
 
 .wos-home {{ max-width: 760px; margin: 8vh auto 0; }}
 .wos-wordmark {{ font-size: 0.82rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wos-muted); }}
@@ -159,7 +175,9 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-picture-row, .wos-evidence-row {{ grid-template-columns: minmax(7rem, 1fr) 1.25fr auto; }}
   .wos-evidence-row {{ grid-template-columns: minmax(7rem, 1fr) 1.25fr; }}
   .wos-home {{ margin-top: 3vh; }}
+  .wos-conversation-state {{ margin-top: 4vh; }}
   .wos-visual-workspace {{ max-width: 100%; }}
+  .wos-interim-workspace, .wos-picture {{ max-width: 100%; }}
   .wos-tradeoff-grid {{ grid-template-columns: 1fr; gap: 0.8rem; }}
   .wos-timeline {{ grid-template-columns: 1fr; }}
   .wos-milestone {{ border-top: 0; border-left: 2px solid var(--wos-line); padding: 0 0 1.5rem 1.2rem; min-height: 0; }}
@@ -171,6 +189,9 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-recent-card {{ min-height: auto; }}
   .wos-comparison-row {{ grid-template-columns: 1fr 1fr; gap: 0.45rem 1rem; }}
   .wos-comparison-label {{ grid-column: 1 / -1; }}
+  .wos-picture-section {{ grid-template-columns: 1fr; row-gap: 0.8rem; }}
+  .wos-picture-section h2, .wos-picture-summary-row, .wos-missing {{ grid-column: 1; grid-row: auto; }}
+  .wos-picture-summary-row {{ align-items: baseline; }}
 }}
 </style>
 """

@@ -146,15 +146,13 @@ def test_visual_renderer_has_no_engine_imports_or_financial_arithmetic() -> None
 
 def test_g001_visual_workspace_renders_and_age_control_updates_in_place() -> None:
     app = AppTest.from_file(str(ROOT / "experience" / "app.py")).run(timeout=30)
-    app.radio(key="wealth_os_experience_mode").set_value("LIVE DETERMINISTIC EXPERIENCE").run(
-        timeout=30
-    )
-    app.button(key="wos-live-goal-g-001").click().run(timeout=30)
+    app.chat_input(key="home-chat-input").set_value("Can I retire at 59?").run(timeout=30)
+    app.button(key="conversation-open-workspace").click().run(timeout=30)
 
     assert not app.exception
-    assert app.selectbox(key="g001-retirement-age").value == 58
+    assert app.selectbox(key="g001-retirement-age").value == 59
     rendered = "\n".join(markdown.value for markdown in app.markdown)
-    assert "Could I retire at 58?" in rendered
+    assert "Could I retire at 59?" in rendered
     assert "Baseline retirement age" in rendered
     assert "Liquid assets over time" in rendered
     assert "The retirement bridge" in rendered
@@ -162,19 +160,14 @@ def test_g001_visual_workspace_renders_and_age_control_updates_in_place() -> Non
     assert "Recommended" not in rendered
     assert "Optimal" not in rendered
     assert "ScenarioOverride" not in rendered
-    disclosure_labels = {item.label for item in app.expander}
-    assert {
-        "Show assumptions",
-        "Show supporting figures",
-        "Show limitations",
-        "Show provenance",
-    } <= disclosure_labels
+    assert {item.label for item in app.expander} == {"About this projection"}
+    assert "Show provenance" not in rendered
 
-    app.selectbox(key="g001-retirement-age").set_value(59).run(timeout=30)
+    app.selectbox(key="g001-retirement-age").set_value(57).run(timeout=30)
     assert not app.exception
     rendered = "\n".join(markdown.value for markdown in app.markdown)
-    assert "Could I retire at 59?" in rendered
-    assert "Exploring <strong>59</strong>" in rendered
+    assert "Could I retire at 57?" in rendered
+    assert "Exploring <strong>57</strong>" in rendered
 
 
 def _service() -> LiveExperienceService:

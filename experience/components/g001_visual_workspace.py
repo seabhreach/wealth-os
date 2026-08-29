@@ -31,8 +31,8 @@ from experience.workspace_composition.models import (
 )
 
 
-def render_g001_visual_workspace(spec: WorkspaceSpec, workspace: LiveWorkspace) -> None:
-    """Render a validated spec using only referenced immutable evidence."""
+def render_g001_visual_workspace(spec: WorkspaceSpec, workspace: LiveWorkspace) -> str | None:
+    """Render referenced evidence and return one bounded customer interaction."""
 
     evidence = {item.evidence_id: item for item in workspace.evidence}
     validate_g001_workspace(spec, set(evidence))
@@ -56,16 +56,39 @@ def render_g001_visual_workspace(spec: WorkspaceSpec, workspace: LiveWorkspace) 
     st.selectbox(
         control.label,
         control.allowed_values,
-        index=control.allowed_values.index(control.current_value),
+        index=(
+            None
+            if "g001-retirement-age" in st.session_state
+            else control.allowed_values.index(control.current_value)
+        ),
         key="g001-retirement-age",
         help="This changes only the temporary comparison. Your baseline remains unchanged.",
     )
+    action: str | None = None
+    if st.button(
+        "Update Financial Picture",
+        key="g001-propose-financial-picture-update",
+        type="tertiary",
+        help="Review this exploration as a proposed planning change. Nothing is saved automatically.",
+    ):
+        action = "propose-update"
 
     for section in spec.sections[1:-1]:
         for component in section.components:
             _render_component(component, evidence)
+            if component.component_type in {
+                WorkspaceComponentType.WEALTH_TRAJECTORY,
+                WorkspaceComponentType.METRIC_COMPARISON,
+                WorkspaceComponentType.TIMELINE,
+            } and st.button(
+                "Explain this",
+                key=f"explain-{component.component_id}",
+                type="tertiary",
+            ):
+                action = f"explain:{component.component_id}"
     _render_details(spec, workspace, evidence)
     st.markdown("</main>", unsafe_allow_html=True)
+    return action
 
 
 def _render_component(
@@ -190,20 +213,23 @@ def _render_details(
 ) -> None:
     section = spec.sections[-1]
     st.markdown('<div class="wos-detail-rule"></div>', unsafe_allow_html=True)
-    for component in section.components:
-        with st.expander(component.title, expanded=False):
+    with st.expander("About this projection", expanded=False):
+        for component in section.components:
             if component.disclosure_content is DisclosureContent.PROVENANCE:
-                _provenance(spec, workspace)
-            else:
-                for evidence_id in component.evidence_refs:
-                    _detail_evidence(evidence[evidence_id])
+                continue
+            st.markdown(f"#### {component.title.removeprefix('Show ')}")
+            for evidence_id in component.evidence_refs:
+                _detail_evidence(evidence[evidence_id])
 
 
 def _detail_evidence(evidence: LiveEvidence) -> None:
     if isinstance(evidence, AssumptionEvidence):
-        st.markdown(
-            f"**{evidence.label}:** {format_display_value(evidence.value)}  \n{evidence.source} · {evidence.confidence.value}"
+        suffix = (
+            "changed for this exploration"
+            if evidence.source == "Temporary scenario input"
+            else "from your Financial Picture"
         )
+        st.markdown(f"**{evidence.label}**  \n{format_display_value(evidence.value)} — {suffix}")
     elif isinstance(evidence, LimitationEvidence):
         st.write(evidence.text)
     elif isinstance(evidence, TableEvidence):
@@ -217,24 +243,6 @@ def _detail_evidence(evidence: LiveEvidence) -> None:
         st.table(rows)
         if evidence.footnote:
             st.caption(evidence.footnote)
-
-
-def _provenance(spec: WorkspaceSpec, workspace: LiveWorkspace) -> None:
-    provenance = workspace.provenance
-    st.markdown(
-        "\n".join(
-            (
-                f"- Baseline: `{provenance.baseline_identifier}`",
-                f"- Financial Picture: `{provenance.financial_picture_fingerprint}`",
-                f"- Temporary overrides: `{dict(provenance.scenario_overrides)}`",
-                f"- Simulation: `{provenance.simulation_version}`",
-                f"- Tax rules: `{provenance.tax_rule_identifier or 'disabled'}`",
-                f"- Result: `{provenance.result_fingerprint}`",
-                f"- Composition policy: `{spec.provenance.composition_policy_version}`",
-                f"- Workspace specification: `{spec.spec_version}`",
-            )
-        )
-    )
 
 
 def _comparison_value(value: Decimal | int | str | bool | None, unit: str) -> str:
