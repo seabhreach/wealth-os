@@ -67,6 +67,8 @@ EXPERIENCE_CSS = f"""
   --wos-secondary: color-mix(in srgb, var(--text-color) 78%, var(--background-color));
   --wos-muted: color-mix(in srgb, var(--text-color) 64%, var(--background-color));
   --wos-soft: var(--secondary-background-color);
+  --wos-raised: color-mix(in srgb, var(--secondary-background-color) 88%, var(--background-color));
+  --wos-accent-soft: color-mix(in srgb, var(--primary-color) 13%, var(--background-color));
   --wos-line: color-mix(in srgb, var(--text-color) 22%, var(--background-color));
   --wos-accent: var(--primary-color);
   --wos-input-fg: var(--text-color);
@@ -90,6 +92,13 @@ EXPERIENCE_CSS = f"""
 .wos-picture {{ max-width: 980px; margin: 2.5rem auto 0; }}
 .wos-picture-title {{ color: var(--wos-ink); font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.06; letter-spacing: -0.045em; margin: 0.8rem 0 1rem; }}
 .wos-picture-section {{ display: grid; grid-template-columns: minmax(11rem, 0.7fr) 1.5fr; column-gap: 3rem; padding: 1.6rem 0; border-top: 1px solid var(--wos-line); }}
+.wos-picture-hero {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--wos-line); border: 1px solid var(--wos-line); border-radius: 1.1rem; overflow: hidden; margin: 2.4rem 0 1rem; }}
+.wos-picture-hero-cell {{ background: var(--wos-raised); padding: 1.4rem; min-height: 7rem; }}
+.wos-picture-hero-cell span, .wos-picture-retirement-callout span {{ display: block; color: var(--wos-muted); font-size: 0.78rem; letter-spacing: 0.035em; text-transform: uppercase; }}
+.wos-picture-hero-cell strong {{ display: block; color: var(--wos-ink); font-size: clamp(1.25rem, 2.2vw, 2rem); letter-spacing: -0.035em; margin-top: 1.1rem; }}
+.wos-picture-retirement-callout {{ display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 0.4rem 2rem; padding: 1.2rem 1.4rem; border-radius: 0.9rem; background: var(--wos-accent-soft); margin-bottom: 2.8rem; }}
+.wos-picture-retirement-callout strong {{ color: var(--wos-ink); font-size: 1.35rem; }}
+.wos-picture-retirement-callout small {{ grid-column: 2; color: var(--wos-muted); }}
 .wos-picture-section h2 {{ grid-row: 1 / span 20; color: var(--wos-ink); font-size: 1rem; margin: 0; }}
 .wos-picture-summary-row {{ grid-column: 2; display: flex; justify-content: space-between; gap: 2rem; padding: 0.35rem 0; }}
 .wos-picture-summary-row span {{ color: var(--wos-muted); }}
@@ -121,6 +130,9 @@ div[data-testid="stColumn"]:has(.wos-workspace) {{ border-left: 1px solid var(--
 .wos-status {{ display: inline-block; color: var(--wos-accent); background: color-mix(in srgb, var(--wos-accent) 10%, transparent); border-radius: 999px; padding: 0.35rem 0.7rem; font-size: 0.8rem; margin-bottom: 2rem; }}
 .wos-live-badge {{ display: inline-block; color: var(--wos-accent); border: 1px solid color-mix(in srgb, var(--wos-accent) 45%, transparent); border-radius: 999px; padding: 0.3rem 0.65rem; font-size: 0.76rem; margin: 0.4rem 0 1.4rem; }}
 .wos-section {{ padding: 1.15rem 0 1.35rem; border-top: 1px solid var(--wos-line); }}
+.wos-interim-workspace .wos-section {{ border: 0; background: var(--wos-raised); border-radius: 1rem; padding: 1.25rem 1.4rem; margin: 0.8rem 0; }}
+.wos-interim-workspace .wos-section h3 {{ color: var(--wos-accent); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }}
+.wos-interim-workspace .wos-evidence-row span:last-child {{ color: var(--wos-ink); font-size: 1.12rem; font-weight: 650; }}
 .wos-section h3 {{ font-size: 1rem; margin: 0 0 0.45rem; }}
 .wos-section p {{ color: var(--wos-muted); line-height: 1.55; margin: 0 0 0.8rem; }}
 .wos-picture-row, .wos-evidence-row {{ display: grid; grid-template-columns: minmax(8rem, 1fr) 1.3fr auto; gap: 0.8rem; align-items: baseline; padding: 0.5rem 0; font-size: 0.88rem; }}
@@ -190,6 +202,9 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-comparison-row {{ grid-template-columns: 1fr 1fr; gap: 0.45rem 1rem; }}
   .wos-comparison-label {{ grid-column: 1 / -1; }}
   .wos-picture-section {{ grid-template-columns: 1fr; row-gap: 0.8rem; }}
+  .wos-picture-hero {{ grid-template-columns: 1fr 1fr; }}
+  .wos-picture-retirement-callout {{ grid-template-columns: 1fr; }}
+  .wos-picture-retirement-callout small {{ grid-column: 1; }}
   .wos-picture-section h2, .wos-picture-summary-row, .wos-missing {{ grid-column: 1; grid-row: auto; }}
   .wos-picture-summary-row {{ align-items: baseline; }}
 }}

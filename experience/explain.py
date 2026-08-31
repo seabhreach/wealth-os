@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from experience.live.models import LiveWorkspace, NarrativeEvidence
+from experience.models import GoalId
 from experience.workspace_composition.models import WorkspaceComponentType, WorkspaceSpec
 
 
@@ -57,6 +58,27 @@ def context_for_component(
     )
 
 
+def context_for_evidence(
+    workspace: LiveWorkspace,
+    component_id: str,
+    evidence_refs: tuple[str, ...],
+) -> ExplainContext:
+    """Create explanation context for a validated goal-specific composition."""
+
+    available = {item.evidence_id for item in workspace.evidence}
+    unknown = set(evidence_refs).difference(available)
+    if unknown:
+        raise ValueError(f"Unknown explanation evidence: {', '.join(sorted(unknown))}")
+    return ExplainContext(
+        workspace.workspace_id,
+        component_id,
+        WorkspaceComponentType.METRIC_COMPARISON,
+        workspace.provenance.scenario_overrides,
+        evidence_refs,
+        None,
+    )
+
+
 def explain_context(
     context: ExplainContext,
     workspace: LiveWorkspace,
@@ -74,13 +96,29 @@ def explain_context(
         WorkspaceComponentType.METRIC_COMPARISON: "baseline comparison",
         WorkspaceComponentType.TIMELINE: "retirement timeline",
     }.get(context.component_type, "Workspace evidence")
-    framing = f"You're asking about the {component_name} for retiring at {age}."
+    framing = (
+        f"You're asking about the {component_name} for retiring at {age}."
+        if workspace.goal_id is GoalId.RETIRE_EARLIER
+        else f"You're asking about the evidence behind {workspace.title}"
+    )
 
     if context.component_type is WorkspaceComponentType.WEALTH_TRAJECTORY:
         text = (
             "The two paths use the same Financial Picture and planning assumptions. "
             "Only the temporary retirement age changes, so the gap shows how stopping work "
             "earlier changes the liquid assets available to fund spending over time."
+        )
+    elif (
+        context.component_type is WorkspaceComponentType.METRIC_COMPARISON
+        and workspace.goal_id is not GoalId.RETIRE_EARLIER
+    ):
+        narrative = next(
+            (item for item in workspace.evidence if isinstance(item, NarrativeEvidence)), None
+        )
+        text = (
+            narrative.text
+            if narrative
+            else "This explanation is limited to the selected deterministic evidence."
         )
     elif context.component_type is WorkspaceComponentType.METRIC_COMPARISON:
         text = (

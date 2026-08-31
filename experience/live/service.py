@@ -12,6 +12,7 @@ from engine.reporting import (
     ScenarioOverride,
     ScenarioResult,
     annual_financial_statement,
+    reconcile_property_scenarios,
     run_scenario,
     summarize_rental_properties,
 )
@@ -305,6 +306,24 @@ class LiveExperienceService:
             ),
         )
         properties = summarize_rental_properties(self._baseline.configuration)
+        planned_property = next(item for item in properties if item.is_planned_purchase)
+        property_config = next(
+            item
+            for item in self._baseline.configuration.rental_properties
+            if item.purchase_year == planned_property.purchase_year
+            and item.name == planned_property.name
+        )
+        reconciliation = reconcile_property_scenarios(baseline, excluded, property_config)
+        included_purchase_year = next(
+            year
+            for year in baseline.projection
+            if year.calendar_year == planned_property.purchase_year
+        )
+        excluded_purchase_year = next(
+            year
+            for year in excluded.projection
+            if year.calendar_year == planned_property.purchase_year
+        )
         overrides = (("include_planned_rental_properties", "false"),)
         property_rows = tuple(
             (
@@ -321,8 +340,8 @@ class LiveExperienceService:
                 "Answer",
                 EvidencePurpose.ANSWER,
                 LIVE,
-                "The comparison shows the planned property beside an otherwise identical projection with that purchase excluded.",
-                ("g002-liquidity", "g002-property-value"),
+                "Under the current model, including the planned property leaves more liquid assets and more total wealth at the planning horizon. The purchase uses cash in 2027, while net rent continues to support annual cash flow and the property appreciates. This is a modelled trade-off, not a recommendation.",
+                ("g002-liquidity", "g002-property-value", "g002-net-worth"),
             ),
             ComparisonEvidence(
                 "g002-liquidity",
@@ -337,6 +356,18 @@ class LiveExperienceService:
                 "EUR",
             ),
             ComparisonEvidence(
+                "g002-net-worth",
+                "Final modelled net worth",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Net worth at life expectancy",
+                "Property included",
+                baseline.metrics.final_net_worth,
+                "Property excluded",
+                excluded.metrics.final_net_worth,
+                "EUR",
+            ),
+            ComparisonEvidence(
                 "g002-property-value",
                 "Final property value",
                 EvidencePurpose.COMPARISON,
@@ -347,6 +378,85 @@ class LiveExperienceService:
                 "Property excluded",
                 excluded.metrics.final_property_value,
                 "EUR",
+            ),
+            MetricEvidence(
+                "g002-purchase",
+                "Purchase cash movement",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Cash used for the planned purchase",
+                planned_property.purchase_price,
+                "EUR",
+                str(planned_property.purchase_year),
+            ),
+            MetricEvidence(
+                "g002-cumulative-rent",
+                "Rental contribution",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Cumulative modelled net rent before estimated tax",
+                reconciliation.cumulative_modelled_rent,
+                "EUR",
+            ),
+            MetricEvidence(
+                "g002-rental-tax",
+                "Estimated rental-tax effect",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Cumulative estimated-tax difference",
+                reconciliation.cumulative_estimated_tax_difference,
+                "EUR",
+            ),
+            MetricEvidence(
+                "g002-funding-preserved",
+                "Retirement funding interaction",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Cumulative liquid withdrawals avoided",
+                reconciliation.cumulative_liquid_funding_preserved,
+                "EUR",
+            ),
+            ComparisonEvidence(
+                "g002-purchase-year-liquid",
+                "Liquidity after purchase",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                f"Liquid assets in {planned_property.purchase_year}",
+                "Property included",
+                included_purchase_year.liquid_assets,
+                "Property excluded",
+                excluded_purchase_year.liquid_assets,
+                "EUR",
+            ),
+            TimelineEvidence(
+                "g002-liquid-included-series",
+                "Liquid assets · property included",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Property included",
+                "EUR",
+                _projection_liquid_points(baseline),
+            ),
+            TimelineEvidence(
+                "g002-liquid-excluded-series",
+                "Liquid assets · property excluded",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Property excluded",
+                "EUR",
+                _projection_liquid_points(excluded),
+            ),
+            TimelineEvidence(
+                "g002-property-series",
+                "Property value trajectory",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Modelled property value",
+                "EUR",
+                tuple(
+                    TimelinePoint(year.calendar_year, year.property_value, year.age)
+                    for year in baseline.projection
+                ),
             ),
             ComparisonEvidence(
                 "g002-rent",
@@ -417,7 +527,7 @@ class LiveExperienceService:
                 "Answer",
                 EvidencePurpose.ANSWER,
                 LIVE,
-                f"This comparison shows sell-on-vest and retain policies and currently focuses on {focus}.",
+                f"The {focus} path is selected. Retaining future awards produces materially higher employer-share concentration than selling on vest; both paths remain temporary comparisons, not advice.",
                 ("g003-concentration", "g003-final-worth"),
             ),
             ComparisonEvidence(
@@ -431,6 +541,28 @@ class LiveExperienceService:
                 "Retain",
                 retain.metrics.maximum_amazon_concentration,
                 "ratio",
+            ),
+            TimelineEvidence(
+                "g003-sell-equity-series",
+                "Employer equity · sell on vest",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Sell on vest",
+                "EUR",
+                tuple(
+                    TimelinePoint(y.calendar_year, y.amazon_value, y.age) for y in sell.projection
+                ),
+            ),
+            TimelineEvidence(
+                "g003-retain-equity-series",
+                "Employer equity · retain",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Retain",
+                "EUR",
+                tuple(
+                    TimelinePoint(y.calendar_year, y.amazon_value, y.age) for y in retain.projection
+                ),
             ),
             ComparisonEvidence(
                 "g003-final-equity",
@@ -565,6 +697,34 @@ class LiveExperienceService:
                 scenario.metrics.first_retirement_spending,
                 "EUR/year",
             ),
+            AssumptionEvidence(
+                "g004-input-basis",
+                "Spending input basis",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Explored annual spending in today's money",
+                target,
+                "Temporary scenario input before annual inflation",
+                KNOWN,
+            ),
+            TimelineEvidence(
+                "g004-liquid-baseline-series",
+                "Liquid assets · current spending",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Current spending",
+                "EUR",
+                _projection_liquid_points(baseline),
+            ),
+            TimelineEvidence(
+                "g004-liquid-scenario-series",
+                "Liquid assets · explored spending",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Explored spending",
+                "EUR",
+                _projection_liquid_points(scenario),
+            ),
             ComparisonEvidence(
                 "g004-liquid",
                 "Final liquid assets",
@@ -630,6 +790,7 @@ class LiveExperienceService:
         """Explain one reporting year solely through existing statement and trace APIs."""
 
         projection = self._baseline_result.projection
+        selected_year = next(year for year in projection if year.calendar_year == calendar_year)
         statement = annual_financial_statement(
             projection, self._baseline.configuration, calendar_year
         )
@@ -641,7 +802,7 @@ class LiveExperienceService:
                 "Answer",
                 EvidencePurpose.ANSWER,
                 LIVE,
-                _cash_decline_answer(statement),
+                _cash_decline_answer(statement, employed=selected_year.employed),
                 ("g005-statement", "g005-funding"),
             ),
             FinancialStatementEvidence(
@@ -661,12 +822,42 @@ class LiveExperienceService:
                 (
                     ("Estimated tax", trace.total_estimated_tax),
                     ("Property purchase", trace.property_purchase_cost),
-                    ("Retirement spending", trace.retirement_spending),
+                    (
+                        "Retirement spending"
+                        if not selected_year.employed
+                        else "Retirement spending (not active)",
+                        trace.retirement_spending,
+                    ),
                     ("Cash used for spending", trace.cash_withdrawal),
                 ),
                 trace.closing_cash,
                 statement.liquid_assets,
                 statement.net_worth,
+                selected_year.employed,
+                self._baseline.configuration.household.planned_retirement_age,
+                selected_year.age,
+            ),
+            TimelineEvidence(
+                "g005-cash-series",
+                "Cash trajectory",
+                EvidencePurpose.COMPARISON,
+                LIVE,
+                "Closing cash",
+                "EUR",
+                tuple(
+                    TimelinePoint(year.calendar_year, year.cash_balance, year.age)
+                    for year in projection
+                ),
+            ),
+            MetricEvidence(
+                "g005-retirement-milestone",
+                "Retirement begins",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "First modelled retirement year",
+                next(year.calendar_year for year in projection if not year.employed),
+                "calendar year",
+                f"Age {self._baseline.configuration.household.planned_retirement_age}",
             ),
             TableEvidence(
                 "g005-funding",
@@ -950,7 +1141,7 @@ def _cash_transition_observation(statement: AnnualFinancialStatement) -> str:
     return "No liquid-asset sale is required in the selected year."
 
 
-def _cash_decline_answer(statement: AnnualFinancialStatement) -> str:
+def _cash_decline_answer(statement: AnnualFinancialStatement, *, employed: bool) -> str:
     funding = statement.funding
     recurring_sources: list[str] = []
     if funding.rental_income > 0:
@@ -960,6 +1151,12 @@ def _cash_decline_answer(statement: AnnualFinancialStatement) -> str:
     if funding.state_pension > 0:
         recurring_sources.append("State Pension income")
 
+    if employed:
+        return (
+            f"{statement.calendar_year} is pre-retirement. Employment and annual saving are still active, "
+            "so this year is not a retirement-funding year. The annual trace links opening cash, "
+            "income, the planned property purchase and other movements to closing cash."
+        )
     if recurring_sources and funding.cash_used > 0:
         sources = _join_sources(recurring_sources)
         cause = f"{sources.capitalize()} cover part of retirement spending; the remainder comes from cash."

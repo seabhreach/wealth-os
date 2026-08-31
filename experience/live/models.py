@@ -130,6 +130,9 @@ class FinancialStatementEvidence(EvidenceBase):
     closing_cash: Decimal
     liquid_assets: Decimal
     net_worth: Decimal
+    employed: bool
+    retirement_age: int
+    age: int
 
 
 @dataclass(frozen=True, slots=True)

@@ -16,7 +16,12 @@ from experience.components.financial_picture import (
 from experience.components.g001_visual_workspace import render_g001_visual_workspace
 from experience.components.live_workspace import render_live_workspace
 from experience.components.recent_workspaces import render_recent_workspaces
-from experience.explain import ExplainContext, context_for_component, explain_context
+from experience.explain import (
+    ExplainContext,
+    context_for_component,
+    context_for_evidence,
+    explain_context,
+)
 from experience.live import LiveExperienceService
 from experience.live.models import LiveWorkspace
 from experience.models import GoalId
@@ -179,11 +184,8 @@ def _render_workspace(service: LiveExperienceService) -> None:
     if not isinstance(goal_id, GoalId):
         _go(ShellView.WORKSPACES)
         st.rerun()
-    top = st.columns((1.0, 1.0, 6.0))
-    if top[0].button("Return home", key="return-home", type="tertiary"):
-        _go(ShellView.HOME)
-        st.rerun()
-    if top[1].button("Ask Wealth OS", key="ask-wealth-os", type="tertiary"):
+    top = st.columns((1.0, 7.0))
+    if top[0].button("Ask Wealth OS", key="ask-wealth-os", type="tertiary"):
         st.session_state[EXPLAIN_KEY] = "general"
     workspace = (
         _render_retirement_workspace(service)
@@ -229,13 +231,7 @@ def _render_retirement_workspace(service: LiveExperienceService) -> LiveWorkspac
 
 def _render_interim_workspace(goal_id: GoalId, service: LiveExperienceService) -> LiveWorkspace:
     if goal_id is GoalId.INVESTMENT_PROPERTY:
-        financing = st.toggle(
-            "Explore financing instead",
-            value=False,
-            key="integrated-property-financing",
-            help="Financing is outside the current deterministic model.",
-        )
-        workspace = service.property_decision(financing=financing)
+        workspace = service.property_decision()
     elif goal_id is GoalId.EMPLOYER_EQUITY:
         policy = st.segmented_control(
             "Explore disposal policy",
@@ -261,7 +257,15 @@ def _render_interim_workspace(goal_id: GoalId, service: LiveExperienceService) -
         workspace = service.cash_decline(
             st.selectbox("Explain year", years, index=years.index(year), key=CASH_YEAR_KEY)
         )
-    render_live_workspace(workspace)
+    action = render_live_workspace(workspace)
+    if action and action.startswith("explain:"):
+        refs = tuple(action.removeprefix("explain:").split(","))
+        st.session_state[EXPLAIN_KEY] = context_for_evidence(
+            workspace,
+            f"{goal_id.value}-primary",
+            refs,
+        )
+        st.rerun()
     return workspace
 
 

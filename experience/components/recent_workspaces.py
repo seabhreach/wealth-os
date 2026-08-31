@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from itertools import batched
-
 import streamlit as st
 
 from experience.models import GoalId
-from experience.navigation import recent_workspaces
+from experience.navigation import RecentWorkspace, recent_workspaces
 from experience.widget_keys import widget_key
 
 
@@ -17,7 +15,7 @@ def render_recent_workspaces() -> GoalId | None:
     st.markdown('<div class="wos-recent-heading">Recent Workspaces</div>', unsafe_allow_html=True)
     selected: GoalId | None = None
     workspaces = recent_workspaces()
-    for row in batched(workspaces, 2, strict=False):
+    for row in _workspace_pairs(workspaces):
         columns = st.columns(2, gap="medium")
         for index, workspace in enumerate(row):
             with columns[index].container(border=True):
@@ -38,3 +36,18 @@ def render_recent_workspaces() -> GoalId | None:
                 ):
                     selected = workspace.goal_id
     return selected
+
+
+def _workspace_pairs(
+    workspaces: tuple[RecentWorkspace, ...],
+) -> tuple[tuple[RecentWorkspace, ...], ...]:
+    """Group navigation records without financial or presentation arithmetic."""
+
+    iterator = iter(workspaces)
+    rows: list[tuple[RecentWorkspace, ...]] = []
+    while True:
+        first = next(iterator, None)
+        if first is None:
+            return tuple(rows)
+        second = next(iterator, None)
+        rows.append((first,) if second is None else (first, second))

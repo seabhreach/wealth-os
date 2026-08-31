@@ -24,8 +24,8 @@ from experience.live.models import (
 )
 
 
-def render_live_workspace(workspace: LiveWorkspace) -> None:
-    """Render a clean full-width interim Workspace from immutable evidence."""
+def render_live_workspace(workspace: LiveWorkspace) -> str | None:
+    """Render an answer-first, goal-specific Workspace from immutable evidence."""
 
     st.markdown('<main class="wos-interim-workspace">', unsafe_allow_html=True)
     st.markdown('<div class="wos-visual-kicker">Workspace</div>', unsafe_allow_html=True)
@@ -33,16 +33,15 @@ def render_live_workspace(workspace: LiveWorkspace) -> None:
         f'<div class="wos-workspace-title">{escape(workspace.title)}</div>', unsafe_allow_html=True
     )
 
-    primary, details, supporting = _evidence_groups(workspace.evidence)
-    for evidence in primary:
-        _render_evidence(evidence)
-    if details:
-        st.markdown(
-            '<div class="wos-visual-section-heading"><h2>Explanation</h2></div>',
-            unsafe_allow_html=True,
-        )
-        for evidence in details[:2]:
-            _render_evidence(evidence)
+    evidence_by_id = {item.evidence_id: item for item in workspace.evidence}
+    answer = next(item for item in workspace.evidence if isinstance(item, NarrativeEvidence))
+    st.markdown(f'<p class="wos-visual-answer">{escape(answer.text)}</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="wos-scenario-context">Temporary exploration · your Financial Picture is unchanged</p>',
+        unsafe_allow_html=True,
+    )
+    action = _render_goal_body(workspace, evidence_by_id)
+    _, details, supporting = _evidence_groups(workspace.evidence)
     with st.expander("About this projection", expanded=False):
         if workspace.picture_item_keys:
             st.markdown("#### Assumptions")
@@ -61,6 +60,115 @@ def render_live_workspace(workspace: LiveWorkspace) -> None:
             for evidence in limitations:
                 _render_evidence(evidence)
     st.markdown("</main>", unsafe_allow_html=True)
+    return action
+
+
+def _render_goal_body(workspace: LiveWorkspace, evidence: dict[str, LiveEvidence]) -> str | None:
+    """Select a bounded visual composition for each validated goal."""
+
+    from experience.models import GoalId
+
+    layouts: dict[GoalId, tuple[str, tuple[str, ...], str]] = {
+        GoalId.INVESTMENT_PROPERTY: (
+            "The modelled property trade-off",
+            ("g002-liquidity", "g002-property-value", "g002-net-worth"),
+            "How purchase, rent and property value affect the two paths",
+        ),
+        GoalId.EMPLOYER_EQUITY: (
+            "Employer-share concentration",
+            ("g003-concentration", "g003-final-equity", "g003-final-worth"),
+            "How the selected disposal policy changes exposure",
+        ),
+        GoalId.HIGHER_SPENDING: (
+            "Spending and funding consequence",
+            ("g004-spending", "g004-liquid", "g004-final-worth"),
+            "Today's-money input and the resulting future path",
+        ),
+        GoalId.CASH_DECLINE: (
+            "What changes cash in the selected year",
+            ("g005-statement", "g005-transition", "g005-retirement-milestone"),
+            "Opening cash, inflows, outflows and closing cash",
+        ),
+    }
+    heading, primary_ids, explanation = layouts[workspace.goal_id]
+    _visual_heading(heading, explanation)
+    timelines = tuple(item for item in workspace.evidence if isinstance(item, TimelineEvidence))
+    comparisons = tuple(evidence[item_id] for item_id in primary_ids if item_id in evidence)
+    for item in comparisons:
+        _render_evidence(item)
+    if timelines:
+        _visual_heading("Trajectory", "Exact annual values from the deterministic projection.")
+        _timeline_chart(timelines)
+    if workspace.goal_id is GoalId.INVESTMENT_PROPERTY:
+        _visual_heading(
+            "What changes when the property is purchased",
+            "The purchase is funded from cash; rent and appreciation then continue through the model.",
+        )
+        for item_id in (
+            "g002-purchase",
+            "g002-purchase-year-liquid",
+            "g002-rent",
+            "g002-cumulative-rent",
+            "g002-rental-tax",
+            "g002-funding-preserved",
+        ):
+            _render_evidence(evidence[item_id])
+    elif workspace.goal_id is GoalId.HIGHER_SPENDING:
+        _visual_heading(
+            "The spending basis",
+            "The explored input is in today's money; the first-retirement figure is inflation-adjusted nominal spending.",
+        )
+        _render_evidence(evidence["g004-input-basis"])
+    elif workspace.goal_id is GoalId.CASH_DECLINE:
+        statement = evidence["g005-statement"]
+        if isinstance(statement, FinancialStatementEvidence):
+            _render_cash_bridge(statement)
+    button_key = f"explain-{workspace.goal_id.value}-primary"
+    if st.button("Explain this", key=button_key, type="tertiary"):
+        return "explain:" + ",".join(primary_ids)
+    return None
+
+
+def _visual_heading(title: str, summary: str) -> None:
+    st.markdown(
+        f'<div class="wos-visual-section-heading"><h2>{escape(title)}</h2><p>{escape(summary)}</p></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _timeline_chart(items: tuple[TimelineEvidence, ...]) -> None:
+    if not items:
+        return
+    data: dict[str, list[int | float]] = {"Year": [p.period for p in items[0].points]}
+    for item in items:
+        # Streamlit/Altair needs quantitative primitives; the immutable Decimal
+        # evidence remains the source of truth and conversion is presentation-only.
+        data[item.label] = [float(point.value) for point in item.points]
+    st.line_chart(data, x="Year", y=[item.label for item in items], color=None)
+    st.caption("Illustrative deterministic projection. Hover for exact annual values.")
+
+
+def _render_cash_bridge(evidence: FinancialStatementEvidence) -> None:
+    status = (
+        f"Pre-retirement · age {evidence.age}"
+        if evidence.employed
+        else f"Retired · age {evidence.age}"
+    )
+    rows = (
+        ("Opening cash", format_display_value(evidence.opening_cash, "EUR")),
+        *(
+            (f"+ {label}", format_display_value(value, "EUR"))
+            for label, value in evidence.inflows
+            if value
+        ),
+        *(
+            (f"- {label}", format_display_value(value, "EUR"))
+            for label, value in evidence.outflows
+            if value
+        ),
+        ("Closing cash", format_display_value(evidence.closing_cash, "EUR")),
+    )
+    _rows(f"Cash flow · {evidence.calendar_year}", status, rows)
 
 
 def _evidence_groups(

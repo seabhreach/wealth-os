@@ -76,6 +76,22 @@ def test_shell_navigation_reaches_financial_picture_and_saved_workspace() -> Non
     rendered = _rendered(app)
     assert "How dependent am I on my employer shares?" in rendered
     assert "Conversation" not in rendered
+    assert "Return home" not in rendered
+
+
+@pytest.mark.parametrize(
+    "goal_key",
+    ("wos-recent-g-002", "wos-recent-g-003", "wos-recent-g-004", "wos-recent-g-005"),
+)
+def test_each_non_retirement_goal_uses_visual_goal_specific_composition(goal_key: str) -> None:
+    app = AppTest.from_file(str(APP)).run(timeout=30)
+    app.button(key=goal_key).click().run(timeout=30)
+
+    assert not app.exception
+    rendered = _rendered(app)
+    assert "Temporary exploration" in rendered
+    assert "About this projection" in {item.label for item in app.expander}
+    assert any(button.label == "Explain this" for button in app.button)
 
 
 def test_g001_temporary_scenario_does_not_mutate_financial_picture() -> None:

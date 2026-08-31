@@ -53,6 +53,7 @@ def render_financial_picture(
         unsafe_allow_html=True,
     )
 
+    _render_picture_hero(picture)
     for title, selectors in SECTIONS:
         items = _section_items(picture.items, selectors)
         _render_section(title, items)
@@ -71,6 +72,35 @@ def render_financial_picture(
     ):
         _render_proposal(proposal)
     st.markdown("</main>", unsafe_allow_html=True)
+
+
+def _render_picture_hero(picture: FinancialPicture) -> None:
+    """Compose a visual snapshot from existing Financial Picture values only."""
+
+    cash = _item(picture, "cash")
+    investments = _item(picture, "investments")
+    retirement_age = _item(picture, "planned_retirement_age")
+    spending = _item(picture, "retirement_spending")
+    savings = _item(picture, "annual_savings")
+    hero = (
+        ("Cash", format_display_value(cash.value, "EUR")),
+        ("Investments", format_display_value(investments.value, "EUR")),
+        ("Annual saving", format_display_value(savings.value, "EUR/year")),
+        ("Planned retirement", f"Age {retirement_age.value}"),
+    )
+    cells = "".join(
+        '<div class="wos-picture-hero-cell">'
+        f"<span>{escape(label)}</span><strong>{escape(value)}</strong></div>"
+        for label, value in hero
+    )
+    st.markdown(
+        f'<section class="wos-picture-hero">{cells}</section>'
+        '<div class="wos-picture-retirement-callout">'
+        "<span>Retirement spending assumption</span>"
+        f"<strong>{escape(format_display_value(spending.value, 'EUR/year'))}</strong>"
+        "<small>in today's money, inflated through the projection</small></div>",
+        unsafe_allow_html=True,
+    )
 
 
 def proposed_retirement_age(

@@ -12,11 +12,13 @@ import pytest
 from experience.components.live_workspace import _evidence_groups
 from experience.display import format_display_value, format_table_value
 from experience.live.models import (
+    AssumptionEvidence,
     ComparisonEvidence,
     EvidenceMode,
     FinancialStatementEvidence,
     LimitationEvidence,
     NarrativeEvidence,
+    TimelineEvidence,
 )
 from experience.live.provenance import provenance_identity, stable_fingerprint
 from experience.live.service import LiveExperienceService
@@ -170,6 +172,42 @@ def test_property_workspace_compares_configured_include_and_exclude_results() ->
     assert service.baseline.configuration.rental_properties
 
 
+def test_property_workspace_reconciles_purchase_liquidity_rent_and_final_wealth() -> None:
+    service = _service()
+    workspace = service.property_decision()
+    included = run_scenario(
+        service.baseline.configuration,
+        AdvisorScenario("Included", ScenarioOverride()),
+    )
+    excluded = run_scenario(
+        service.baseline.configuration,
+        AdvisorScenario("Excluded", ScenarioOverride(include_planned_rental_properties=False)),
+    )
+
+    assert (
+        _comparison(workspace.evidence, "g002-liquidity").baseline_value
+        == included.metrics.liquid_assets_at_life_expectancy
+    )
+    assert (
+        _comparison(workspace.evidence, "g002-liquidity").scenario_value
+        == excluded.metrics.liquid_assets_at_life_expectancy
+    )
+    assert (
+        _comparison(workspace.evidence, "g002-net-worth").baseline_value
+        == included.metrics.final_net_worth
+    )
+    assert (
+        _comparison(workspace.evidence, "g002-net-worth").scenario_value
+        == excluded.metrics.final_net_worth
+    )
+    purchase = next(item for item in workspace.evidence if item.evidence_id == "g002-purchase")
+    assert purchase.value == Decimal("200000")  # type: ignore[union-attr]
+    assert any(
+        isinstance(item, TimelineEvidence) and item.evidence_id == "g002-property-series"
+        for item in workspace.evidence
+    )
+
+
 def test_property_financing_returns_only_an_explicit_unsupported_result() -> None:
     workspace = _service().property_decision(financing=True)
 
@@ -197,6 +235,20 @@ def test_employer_equity_uses_supported_disposal_policy_metrics() -> None:
     assert isinstance(concentration.baseline_value, Decimal)
     assert isinstance(concentration.scenario_value, Decimal)
     assert concentration.scenario_value > concentration.baseline_value
+
+
+def test_employer_equity_selected_policy_refreshes_evidence_without_mutating_baseline() -> None:
+    service = _service()
+    before = service.baseline.configuration.model_dump_json()
+    retain = service.employer_equity(focus_sell_on_vest=False)
+    sell = service.employer_equity(focus_sell_on_vest=True)
+
+    assert dict(retain.provenance.scenario_overrides) == {"sell_on_vest": "false"}
+    assert dict(sell.provenance.scenario_overrides) == {"sell_on_vest": "true"}
+    assert "retain path is selected" in retain.evidence[0].text.casefold()  # type: ignore[union-attr]
+    assert "sell on vest path is selected" in sell.evidence[0].text.casefold()  # type: ignore[union-attr]
+    assert retain.provenance.result_fingerprint != sell.provenance.result_fingerprint
+    assert service.baseline.configuration.model_dump_json() == before
 
 
 def test_experience_does_not_define_a_concentration_formula() -> None:
@@ -231,6 +283,29 @@ def test_permanent_spending_uses_existing_supported_override() -> None:
     assert service.baseline.configuration.assumptions.target_retirement_income == Decimal("80000")
 
 
+def test_spending_input_is_today_money_and_first_retirement_value_is_nominal() -> None:
+    service = _service()
+    target = Decimal("120000")
+    workspace = service.higher_spending(target)
+    scenario = run_scenario(
+        service.baseline.configuration,
+        AdvisorScenario("Spending basis", ScenarioOverride(target_retirement_spending=target)),
+    )
+    basis = next(
+        item
+        for item in workspace.evidence
+        if isinstance(item, AssumptionEvidence) and item.evidence_id == "g004-input-basis"
+    )
+
+    assert basis.value == target
+    assert "today's money" in basis.label
+    assert (
+        _comparison(workspace.evidence, "g004-spending").scenario_value
+        == scenario.metrics.first_retirement_spending
+    )
+    assert scenario.metrics.first_retirement_spending == target * Decimal("1.02") ** 6
+
+
 def test_temporary_multi_year_spending_is_an_explicit_limitation() -> None:
     workspace = _service().higher_spending(Decimal("100000"), temporary_years=5)
 
@@ -258,6 +333,31 @@ def test_cash_decline_uses_existing_statement_and_trace_for_selected_year() -> N
     assert statement.closing_cash == expected.assets.trace.closing_cash
     assert statement.liquid_assets == expected.liquid_assets
     assert statement.net_worth == expected.net_worth
+
+
+@pytest.mark.parametrize(
+    ("year", "employed", "required_text", "forbidden_text"),
+    [
+        (2027, True, "pre-retirement", "cover retirement spending"),
+        (2032, False, "retirement spending", "pre-retirement"),
+        (2035, False, "retirement spending", "pre-retirement"),
+    ],
+)
+def test_cash_explanation_respects_actual_retirement_status(
+    year: int,
+    employed: bool,
+    required_text: str,
+    forbidden_text: str,
+) -> None:
+    workspace = _service().cash_decline(year)
+    statement = next(
+        item for item in workspace.evidence if isinstance(item, FinancialStatementEvidence)
+    )
+    answer = workspace.evidence[0]
+
+    assert statement.employed is employed
+    assert required_text in answer.text.casefold()  # type: ignore[union-attr]
+    assert forbidden_text not in answer.text.casefold()  # type: ignore[union-attr]
 
 
 def test_cash_decline_is_causal_and_requires_no_data_collection() -> None:

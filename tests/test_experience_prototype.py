@@ -75,7 +75,7 @@ def test_recent_workspace_opens_and_return_home_resets_the_ui() -> None:
     assert "Should I buy another property?" in rendered
     assert "Property included" in rendered
 
-    app.button(key="return-home").click().run(timeout=30)
+    app.button(key="shell-home").click().run(timeout=30)
     assert not app.exception
     rendered = "\n".join(markdown.value for markdown in app.markdown)
     assert "What would you like to explore today?" in rendered
@@ -299,7 +299,7 @@ def test_saved_workspace_reopens_full_width_and_can_return_home() -> None:
     app.button(key="wos-recent-g-001").click().run(timeout=30)
     assert not app.exception
     assert app.selectbox(key="g001-retirement-age").value == 58
-    app.button(key="return-home").click().run(timeout=30)
+    app.button(key="shell-home").click().run(timeout=30)
     assert not app.exception
     rendered = "\n".join(markdown.value for markdown in app.markdown)
     assert "What would you like to explore today?" in rendered

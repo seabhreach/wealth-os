@@ -26,6 +26,10 @@ from engine.reporting.explainability import (
     retirement_funding_explanation,
 )
 from engine.reporting.properties import RentalPropertySummary, summarize_rental_properties
+from engine.reporting.property_reconciliation import (
+    PropertyScenarioReconciliation,
+    reconcile_property_scenarios,
+)
 from engine.reporting.retirement import RetirementReadinessSummary, summarize_retirement_readiness
 from engine.reporting.rsu_audit import (
     AmazonShareBridgeRow,
@@ -63,6 +67,7 @@ __all__ = [
     "BeforeAfterTaxComparison",
     "CashBridgeRow",
     "PersonTaxStatement",
+    "PropertyScenarioReconciliation",
     "RentalPropertySummary",
     "RetirementComparison",
     "RetirementComparisonMetric",
@@ -83,6 +88,7 @@ __all__ = [
     "default_scenarios",
     "ownership_tax_comparisons",
     "preserved_wealth_warning",
+    "reconcile_property_scenarios",
     "retirement_age_explorer",
     "retirement_funding_explanation",
     "retirement_funding_narrative",
