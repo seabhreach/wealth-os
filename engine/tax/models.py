@@ -13,14 +13,20 @@ class PersonTaxInput:
     state_pension_income: Decimal = ZERO
     rental_profit: Decimal = ZERO
     prsi_taxable_income: Decimal | None = None
+    employment_income: Decimal = ZERO
 
     @property
     def gross_income(self) -> Decimal:
-        return self.private_pension_income + self.state_pension_income + self.rental_profit
+        return (
+            self.employment_income
+            + self.private_pension_income
+            + self.state_pension_income
+            + self.rental_profit
+        )
 
     @property
     def usc_taxable_income(self) -> Decimal:
-        return self.private_pension_income + self.rental_profit
+        return self.employment_income + self.private_pension_income + self.rental_profit
 
     @property
     def prsi_income(self) -> Decimal:

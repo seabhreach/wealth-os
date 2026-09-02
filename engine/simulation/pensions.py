@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from engine.config.models import WealthOsConfig
+from engine.simulation.investable import investable_assets, position_concentration
 from engine.simulation.owners import owner_age_in_year
 
 if TYPE_CHECKING:
@@ -46,8 +47,13 @@ def apply_pension_growth(
         )
         pension_value = sum((balance.value for balance in pension_balances), start=ZERO)
         net_worth = projection_year.net_worth - projection_year.pension_value + pension_value
-        amazon_concentration = (
-            projection_year.amazon_value / net_worth if net_worth != ZERO else ZERO
+        amazon_concentration = position_concentration(
+            projection_year.amazon_value,
+            investable_assets(
+                projection_year.cash_balance,
+                projection_year.etf_value,
+                projection_year.amazon_value,
+            ),
         )
         updated_timeline.append(
             replace(

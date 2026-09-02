@@ -8,10 +8,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from engine.config.models import WealthOsConfig
+from engine.simulation.investable import investable_assets, position_concentration
 from engine.simulation.owners import owner_age_in_year
 from engine.simulation.pensions import PensionBalance
 from engine.tax.calculator import calculate_household_tax
-from engine.tax.models import HouseholdTaxInput, HouseholdTaxResult, PersonTaxInput
+from engine.tax.models import (
+    HouseholdTaxInput,
+    HouseholdTaxResult,
+    PersonTaxInput,
+    PersonTaxResult,
+)
 from engine.tax.rules import TaxRules, index_tax_rules, load_tax_rules
 
 if TYPE_CHECKING:
@@ -92,7 +98,7 @@ def apply_retirement_withdrawals(
             total_estimated_tax = ZERO
             net_recurring_income = gross_recurring_income
             spending_gap = max(annual_spending - gross_recurring_income, ZERO)
-            after_tax_surplus = ZERO
+            after_tax_surplus = max(gross_recurring_income - annual_spending, ZERO)
         else:
             total_estimated_tax = tax_result.total_tax
             net_recurring_income = gross_recurring_income - total_estimated_tax
@@ -106,7 +112,7 @@ def apply_retirement_withdrawals(
             amazon_share_price=amazon_share_price,
         )
 
-        cash_balance = cash_before_withdrawal - withdrawals.cash
+        cash_balance = cash_before_withdrawal + after_tax_surplus - withdrawals.cash
         etf_value = etf_before_withdrawal - withdrawals.etf
         if amazon_share_price != ZERO:
             actual_amazon_shares -= withdrawals.amazon / amazon_share_price
@@ -116,7 +122,9 @@ def apply_retirement_withdrawals(
         liquid_assets = cash_balance + etf_value + amazon_value
         pension_value = sum((balance.value for balance in pension_balances), start=ZERO)
         net_worth = liquid_assets + pension_value + projection_year.property_value
-        amazon_concentration = amazon_value / net_worth if net_worth != ZERO else ZERO
+        amazon_concentration = position_concentration(
+            amazon_value, investable_assets(cash_balance, etf_value, amazon_value)
+        )
 
         updated_timeline.append(
             replace(
@@ -159,7 +167,7 @@ def apply_retirement_withdrawals(
                 net_worth=net_worth,
             )
         )
-        cash_adjustment -= withdrawals.cash
+        cash_adjustment += after_tax_surplus - withdrawals.cash
         previous_etf_value = etf_value
         previous_pension_balances = pension_balances
         previous_upstream_amazon_shares = projection_year.amazon_shares
@@ -207,17 +215,21 @@ def _calculate_projection_tax(
     pension_withdrawals: tuple[Decimal, ...],
     state_pension_by_owner: dict[str, Decimal],
 ) -> HouseholdTaxResult | None:
-    """Return this retirement row's tax estimate from owner-specific recurring income."""
-    if base_rules is None or projection_year.employed:
+    """Return tax on recurring income, including employed-year marginal rental tax."""
+    if base_rules is None:
         return None
 
     private_income = {owner: ZERO for owner in _household_people(config)}
     for pension, withdrawal in zip(config.pensions, pension_withdrawals, strict=True):
         private_income[pension.owner] += withdrawal
     rental_income = _rental_profit_by_owner(projection_year, config)
+    employment_income = {owner: ZERO for owner in _household_people(config)}
+    if projection_year.employed and config.tax.assessable_spouse is not None:
+        employment_income[config.tax.assessable_spouse] = projection_year.salary
     people = tuple(
         PersonTaxInput(
             person=owner,
+            employment_income=employment_income[owner],
             private_pension_income=private_income[owner],
             state_pension_income=state_pension_by_owner[owner],
             rental_profit=rental_income[owner],
@@ -241,8 +253,79 @@ def _calculate_projection_tax(
         indexed_rules,
         prsi_enabled=config.tax.pension_prsi_enabled or config.tax.rental_prsi_enabled,
     )
-    return calculate_household_tax(
+    total = calculate_household_tax(
         HouseholdTaxInput(config.tax.assessment_basis, people), prsi_rules
+    )
+    if not projection_year.employed:
+        return total
+
+    # Salary tax is outside the cash projection: annual_savings is already the
+    # configured post-household-budget contribution. Charge only the marginal
+    # tax created by rent, while calculating it in the salary tax context.
+    employment_only = tuple(
+        PersonTaxInput(
+            person=owner,
+            employment_income=employment_income[owner],
+            prsi_taxable_income=ZERO,
+        )
+        for owner in _household_people(config)
+    )
+    base = calculate_household_tax(
+        HouseholdTaxInput(config.tax.assessment_basis, employment_only), prsi_rules
+    )
+    return _incremental_tax_result(total, base)
+
+
+def _incremental_tax_result(
+    total: HouseholdTaxResult, base: HouseholdTaxResult
+) -> HouseholdTaxResult:
+    """Return the transparent marginal result caused by rental income."""
+
+    people = tuple(
+        _incremental_person_result(total_person, base_person)
+        for total_person, base_person in zip(total.per_person, base.per_person, strict=True)
+    )
+    income_tax = total.total_income_tax - base.total_income_tax
+    usc = total.total_usc - base.total_usc
+    prsi = total.total_prsi - base.total_prsi
+    tax = income_tax + usc + prsi
+    gross = sum((person.gross_income for person in people), start=ZERO)
+    return HouseholdTaxResult(
+        total.tax_year,
+        people,
+        income_tax,
+        usc,
+        prsi,
+        tax,
+        tax / gross if gross else ZERO,
+    )
+
+
+def _incremental_person_result(total: PersonTaxResult, base: PersonTaxResult) -> PersonTaxResult:
+    """Subtract one person's employment-only result from employment plus rent."""
+
+    gross = total.gross_income - base.gross_income
+    income_tax = total.income_tax - base.income_tax
+    usc = total.usc - base.usc
+    prsi = total.prsi - base.prsi
+    tax = income_tax + usc + prsi
+    return PersonTaxResult(
+        person=total.person,
+        gross_income=gross,
+        income_taxable=total.income_taxable - base.income_taxable,
+        usc_taxable=total.usc_taxable - base.usc_taxable,
+        standard_rate_income=total.standard_rate_income - base.standard_rate_income,
+        higher_rate_income=total.higher_rate_income - base.higher_rate_income,
+        income_tax_before_credits=(
+            total.income_tax_before_credits - base.income_tax_before_credits
+        ),
+        credits=total.credits - base.credits,
+        income_tax=income_tax,
+        usc=usc,
+        prsi=prsi,
+        total_tax=tax,
+        effective_rate=tax / gross if gross else ZERO,
+        net_income=gross - tax,
     )
 
 

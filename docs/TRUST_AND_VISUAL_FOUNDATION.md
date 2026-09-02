@@ -2,37 +2,19 @@
 
 ## Scope
 
-This sprint strengthens deterministic explanation and visual composition for the recovered v0.3
-Experience. It does not add AI, external APIs, advice, or a new financial calculation. The v0.2
-simulation, tax, pension, property, employer-equity and funding-order semantics remain protected.
+This sprint strengthened deterministic explanation and visual composition for the recovered v0.3
+Experience. Its original property audit was subsequently superseded by the correctness work in
+`PROPERTY_CORRECTNESS_AND_RESIDENCE_BOUNDARY.md`.
 
 ## Trust audit findings
 
 ### G-002 planned property
 
-The surprising result is reproducible and is consistent with the current baseline model. No
-engine defect was demonstrated, so no financial-semantic change was made.
-
-The configured property is purchased in 2027 for EUR 200,000 from cash. It contributes EUR 16,000
-configured annual net rent in the purchase year, growing with inflation, and appreciates at 3%
-per year. In 2027, the included path therefore has EUR 184,000 less liquid assets than the excluded
-path: the EUR 200,000 purchase less EUR 16,000 rent. It also has EUR 200,000 of property value, so
-modelled net worth is already EUR 16,000 higher that year.
-
-Across the projection the included path records:
-
-- EUR 1,001,760 cumulative modelled rent before the model's estimated tax;
-- EUR 199,405 cumulative estimated-tax difference against the excluded path;
-- EUR 719,091 fewer cumulative liquid withdrawals because rental income contributes to spending;
-- EUR 652,408 final property value;
-- EUR 5,291,174 final liquid assets, against EUR 3,748,242 without the property;
-- EUR 6,777,458 final net worth, against EUR 4,582,118 without the property.
-
-The EUR 1,542,932 final liquid-asset gap is principally the long run of inflation-linked net rent
-and the liquid assets preserved when that rent reduces retirement withdrawals. The final liquid
-difference consists of approximately EUR 1,226,391 cash and EUR 316,541 ETFs; employer equity and
-pensions are unchanged between these two paths. The final net-worth difference is the liquid gap
-plus EUR 652,408 property value.
+The original audit reproduced the then-current result but did not detect that rent was both added
+to cash and used to reduce withdrawals. A later focused ledger audit demonstrated that defect and
+also found untaxed employed-year rent. The corrected property-included path has EUR 4,344,368 final
+liquid assets and EUR 5,830,652 planning net worth, versus EUR 3,748,242 and EUR 4,582,118 with the
+property excluded. The corrected liquid-assets difference is EUR 596,126.
 
 Important limitations remain visible: the baseline has no mortgage, purchase costs, vacancy or
 detailed maintenance schedule. `annual_net_rent` is the configured rent after property expenses;
@@ -41,7 +23,7 @@ modelled cash purchase under the existing cash/ETF rules, not an alternative fin
 securities-funded purchase. Higher modelled wealth does not mean that purchasing the property is
 recommended.
 
-`PropertyScenarioReconciliation` now records these facts from two completed projections. The
+`PropertyScenarioReconciliation` records the corrected facts from two completed projections. The
 Experience presents purchase liquidity, rent, tax difference, withdrawals preserved, property
 trajectory, final liquidity and final wealth without calculating in the renderer.
 

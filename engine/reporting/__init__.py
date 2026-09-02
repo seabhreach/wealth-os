@@ -25,6 +25,7 @@ from engine.reporting.explainability import (
     preserved_wealth_warning,
     retirement_funding_explanation,
 )
+from engine.reporting.net_worth import NetWorthSummary, summarize_net_worth
 from engine.reporting.properties import RentalPropertySummary, summarize_rental_properties
 from engine.reporting.property_reconciliation import (
     PropertyScenarioReconciliation,
@@ -66,6 +67,7 @@ __all__ = [
     "AssetMovementStatement",
     "BeforeAfterTaxComparison",
     "CashBridgeRow",
+    "NetWorthSummary",
     "PersonTaxStatement",
     "PropertyScenarioReconciliation",
     "RentalPropertySummary",
@@ -95,6 +97,7 @@ __all__ = [
     "run_default_scenarios",
     "run_scenario",
     "sensitivity_analysis",
+    "summarize_net_worth",
     "summarize_rental_properties",
     "summarize_retirement_readiness",
     "summarize_rsu_audit",

@@ -110,7 +110,9 @@ def _render_goal_body(workspace: LiveWorkspace, evidence: dict[str, LiveEvidence
             "g002-rent",
             "g002-cumulative-rent",
             "g002-rental-tax",
+            "g002-after-tax-surplus",
             "g002-funding-preserved",
+            "g002-funding-order-growth",
         ):
             _render_evidence(evidence[item_id])
     elif workspace.goal_id is GoalId.HIGHER_SPENDING:

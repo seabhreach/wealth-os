@@ -118,6 +118,22 @@ class RentalPropertyConfig(BaseModel):
         return self
 
 
+class PrimaryResidenceConfig(BaseModel):
+    """Household home that is recorded but never active planning capital."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str = Field(min_length=1)
+    purpose: Literal["PRIMARY_RESIDENCE"] = "PRIMARY_RESIDENCE"
+    estimated_market_value: Decimal = Field(ge=0)
+    mortgage_balance: Decimal = Field(default=Decimal("0"), ge=0)
+
+    @property
+    def equity(self) -> Decimal:
+        """Return represented home equity without activating it for planning."""
+        return self.estimated_market_value - self.mortgage_balance
+
+
 class AssumptionsConfig(BaseModel):
     """Projection assumptions that apply to the household."""
 
@@ -154,6 +170,7 @@ class WealthOsConfig(BaseModel):
     amazon_rsus: AmazonRsuConfig
     pensions: tuple[PensionConfig, ...] = Field(min_length=1)
     rental_properties: tuple[RentalPropertyConfig, ...] = Field(default_factory=tuple, max_length=3)
+    primary_residence: PrimaryResidenceConfig | None = None
     assumptions: AssumptionsConfig
     state_pensions: tuple[StatePensionConfig, ...] = Field(default_factory=tuple, max_length=2)
     tax: TaxConfig = Field(default_factory=TaxConfig)

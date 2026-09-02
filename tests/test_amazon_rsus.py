@@ -21,7 +21,20 @@ def test_sell_on_vest_adds_proceeds_to_cash_without_retaining_granted_shares() -
     assert second_year.amazon_shares == Decimal("100")
     assert second_year.amazon_value == Decimal("22050")
     assert second_year.cash_balance == Decimal("110250")
-    assert first_year.amazon_concentration == first_year.amazon_value / first_year.net_worth
+    expected_investable_assets = (
+        first_year.cash_balance + first_year.etf_value + first_year.amazon_value
+    )
+    assert first_year.amazon_concentration == first_year.amazon_value / expected_investable_assets
+
+
+def test_concentration_excludes_pensions_and_property() -> None:
+    """RFC-010 concentration uses cash, taxable investments, and direct equity only."""
+    first_year = project_annually(
+        load_configuration(EXAMPLE_CONFIGURATION.read_text(encoding="utf-8"))
+    )[0]
+
+    assert first_year.pension_value > 0
+    assert first_year.amazon_concentration != first_year.amazon_value / first_year.net_worth
 
 
 def test_hold_strategy_retains_newly_vested_shares() -> None:

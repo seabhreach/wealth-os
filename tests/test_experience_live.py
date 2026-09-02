@@ -115,6 +115,17 @@ def test_baseline_configuration_remains_identical_after_every_supported_scenario
     assert len(config.rental_properties) == 1
 
 
+def test_financial_picture_exposes_inactive_primary_residence_separately() -> None:
+    """The home is visible household data, not an available planning asset."""
+    picture = _service().baseline.financial_picture
+    items = {item.key: item.value for item in picture.items}
+
+    assert items["primary_residence:value"] == Decimal("1500000")
+    assert items["primary_residence:mortgage"] == Decimal("0")
+    assert items["primary_residence:equity"] == Decimal("1500000")
+    assert "not assumed available" in str(items["primary_residence:planning_status"])
+
+
 def test_retirement_age_workspace_matches_existing_scenario_result() -> None:
     service = _service()
     workspace = service.retire_earlier(58)

@@ -331,6 +331,11 @@ class LiveExperienceService:
                 item.purchase_year,
                 item.purchase_price,
                 item.annual_net_rent,
+                next(
+                    config_item.annual_growth_rate
+                    for config_item in self._baseline.configuration.rental_properties
+                    if config_item.name == item.name
+                ),
             )
             for item in properties
         )
@@ -416,6 +421,24 @@ class LiveExperienceService:
                 reconciliation.cumulative_liquid_funding_preserved,
                 "EUR",
             ),
+            MetricEvidence(
+                "g002-after-tax-surplus",
+                "Pre-retirement rental contribution",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Cumulative after-tax surplus retained in cash",
+                reconciliation.cumulative_after_tax_surplus_difference,
+                "EUR",
+            ),
+            MetricEvidence(
+                "g002-funding-order-growth",
+                "Funding-order and growth interaction",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Residual ETF timing and compounding effect",
+                reconciliation.liquid_growth_and_funding_order_effect,
+                "EUR",
+            ),
             ComparisonEvidence(
                 "g002-purchase-year-liquid",
                 "Liquidity after purchase",
@@ -475,7 +498,13 @@ class LiveExperienceService:
                 "Configured property",
                 EvidencePurpose.ASSUMPTION,
                 LIVE,
-                ("Property", "Purchase year", "Purchase price", "Annual net rent"),
+                (
+                    "Property",
+                    "Purchase year",
+                    "Purchase price",
+                    "Annual net rent",
+                    "Annual appreciation",
+                ),
                 property_rows,
                 "Configured inputs from the existing property record.",
             ),
@@ -494,7 +523,7 @@ class LiveExperienceService:
                 "Limitations",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "Mortgages, transaction costs, vacancy, detailed maintenance and unmodelled tax effects are excluded.",
+                "The property is a cash purchase. Mortgages, transaction and sale costs, vacancy, detailed maintenance, management and capital expenditure are excluded. Configured annual net rent is treated as taxable rental profit; no residential rental relief is modelled.",
             ),
         )
         return self._workspace(
@@ -613,7 +642,7 @@ class LiveExperienceService:
                 "Limitations",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "The concentration measure uses the current projection's net-worth definition. Disposal taxes are not modelled.",
+                "The concentration denominator is investable assets: cash, taxable ETF investments and employer equity. Pensions, investment property and the primary residence are excluded. Disposal taxes are not modelled.",
             ),
         )
         return self._workspace(

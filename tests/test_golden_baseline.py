@@ -30,10 +30,10 @@ def test_golden_baseline_checkpoints() -> None:
     assert first_retirement_year.rental_income == Decimal("17665.2928512000")
     assert first_retirement_year.withdrawal_amount == Decimal("51709.0555320018444800")
     assert readiness.retirement_ready is True
-    assert final_year.liquid_assets == Decimal("5291173.968348116643592369726")
+    assert final_year.liquid_assets == Decimal("4344368.266927997250165882396")
     assert final_year.pension_value == Decimal("833876.0484131591091963864071")
     assert final_year.property_value == Decimal("652407.5583998148735334809083")
-    assert final_year.net_worth == Decimal("6777457.575161090626322237041")
+    assert final_year.net_worth == Decimal("5830651.873740971232895749711")
 
 
 def test_baseline_sells_newly_vested_amazon_shares_into_eur_cash() -> None:
@@ -53,7 +53,7 @@ def test_baseline_opens_without_the_planned_property() -> None:
     assert purchase_year.property_value == Decimal("200000")
     assert purchase_year.property_count == 1
     assert purchase_year.rental_income == Decimal("16000")
-    assert purchase_year.cash_balance == Decimal("763376.0000")
+    assert purchase_year.cash_balance == Decimal("757936.00000")
 
 
 def test_amazon_usd_value_is_converted_to_eur() -> None:

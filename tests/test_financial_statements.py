@@ -42,7 +42,10 @@ def test_asset_movement_reconciles_cash_etfs_pensions_and_property() -> None:
     trace = statement.assets.trace
 
     assert (
-        trace.opening_cash + trace.rsu_sale_proceeds + trace.rental_income - trace.cash_withdrawal
+        trace.opening_cash
+        + trace.rsu_sale_proceeds
+        + trace.after_tax_surplus
+        - trace.cash_withdrawal
         == trace.closing_cash
     )
     assert (
@@ -93,7 +96,7 @@ def test_displayed_statement_reconciliations_include_whole_euro_adjustments() ->
                 trace.opening_cash,
                 trace.annual_savings,
                 trace.rsu_sale_proceeds,
-                trace.rental_income,
+                trace.after_tax_surplus,
             ),
             (trace.property_purchase_cost, trace.cash_withdrawal),
         ),
@@ -144,7 +147,7 @@ def test_displayed_statement_reconciliations_include_whole_euro_adjustments() ->
             trace.opening_cash,
             trace.annual_savings,
             trace.rsu_sale_proceeds,
-            trace.rental_income,
+            trace.after_tax_surplus,
         ),
         (trace.property_purchase_cost, trace.cash_withdrawal),
     )

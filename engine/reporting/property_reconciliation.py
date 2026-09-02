@@ -21,7 +21,9 @@ class PropertyScenarioReconciliation:
     configured_annual_net_rent: Decimal
     cumulative_modelled_rent: Decimal
     cumulative_estimated_tax_difference: Decimal
+    cumulative_after_tax_surplus_difference: Decimal
     cumulative_liquid_funding_preserved: Decimal
+    liquid_growth_and_funding_order_effect: Decimal
     final_liquid_assets_difference: Decimal
     final_property_value_difference: Decimal
     final_net_worth_difference: Decimal
@@ -37,6 +39,28 @@ def reconcile_property_scenarios(
     purchase_year = property_config.purchase_year
     included_purchase = next(y for y in included.projection if y.calendar_year == purchase_year)
     excluded_purchase = next(y for y in excluded.projection if y.calendar_year == purchase_year)
+    cumulative_after_tax_surplus_difference = sum(
+        (
+            included_year.after_tax_surplus - excluded_year.after_tax_surplus
+            for included_year, excluded_year in zip(
+                included.projection, excluded.projection, strict=True
+            )
+        ),
+        start=ZERO,
+    )
+    cumulative_liquid_funding_preserved = sum(
+        (
+            excluded_year.withdrawal_amount - included_year.withdrawal_amount
+            for included_year, excluded_year in zip(
+                included.projection, excluded.projection, strict=True
+            )
+        ),
+        start=ZERO,
+    )
+    final_liquid_assets_difference = (
+        included.metrics.liquid_assets_at_life_expectancy
+        - excluded.metrics.liquid_assets_at_life_expectancy
+    )
     return PropertyScenarioReconciliation(
         purchase_year=purchase_year,
         purchase_price=property_config.purchase_price,
@@ -56,19 +80,15 @@ def reconcile_property_scenarios(
             ),
             start=ZERO,
         ),
-        cumulative_liquid_funding_preserved=sum(
-            (
-                excluded_year.withdrawal_amount - included_year.withdrawal_amount
-                for included_year, excluded_year in zip(
-                    included.projection, excluded.projection, strict=True
-                )
-            ),
-            start=ZERO,
+        cumulative_after_tax_surplus_difference=cumulative_after_tax_surplus_difference,
+        cumulative_liquid_funding_preserved=cumulative_liquid_funding_preserved,
+        liquid_growth_and_funding_order_effect=(
+            final_liquid_assets_difference
+            + property_config.purchase_price
+            - cumulative_after_tax_surplus_difference
+            - cumulative_liquid_funding_preserved
         ),
-        final_liquid_assets_difference=(
-            included.metrics.liquid_assets_at_life_expectancy
-            - excluded.metrics.liquid_assets_at_life_expectancy
-        ),
+        final_liquid_assets_difference=final_liquid_assets_difference,
         final_property_value_difference=(
             included.metrics.final_property_value - excluded.metrics.final_property_value
         ),

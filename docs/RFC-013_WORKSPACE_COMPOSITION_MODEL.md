@@ -333,6 +333,11 @@ Optional:
 
 Allowed controls: supported employer-equity disposal policies. Composition must never invent a
 concentration denominator or provider-specific financial meaning.
+The initial concentration profile uses cash, taxable investments and employer/direct equity;
+pensions, real estate and inactive primary-residence equity are prohibited denominator inputs.
+
+More generally, primary-residence evidence may describe household position but must not be
+composed as available planning capital without an explicit typed residence-activation scenario.
 
 ### G-004 — Higher Retirement Spending
 

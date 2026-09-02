@@ -35,7 +35,7 @@ def test_every_baseline_year_reconciles_balances_income_and_net_worth() -> None:
             trace.opening_cash
             + trace.annual_savings
             + trace.rsu_sale_proceeds
-            + trace.rental_income
+            + trace.after_tax_surplus
             - trace.property_purchase_cost
             - trace.cash_withdrawal,
             trace.closing_cash,

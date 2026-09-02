@@ -6,6 +6,7 @@ from decimal import Decimal
 from engine.config.models import WealthOsConfig
 from engine.simulation.amazon import apply_amazon_rsus
 from engine.simulation.cash_etf import apply_cash_and_etf_growth
+from engine.simulation.investable import investable_assets, position_concentration
 from engine.simulation.pensions import PensionBalance, apply_pension_growth
 from engine.simulation.properties import apply_rental_properties
 from engine.simulation.retirement import apply_retirement_withdrawals
@@ -173,7 +174,9 @@ def _build_projection_year(
     employed = age < configuration.household.planned_retirement_age
     salary = configuration.employment.salary if employed else ZERO
     annual_savings = configuration.employment.annual_savings if employed else ZERO
-    amazon_concentration = amazon_value / net_worth if net_worth != ZERO else ZERO
+    amazon_concentration = position_concentration(
+        amazon_value, investable_assets(cash_balance, etf_value, amazon_value)
+    )
 
     return ProjectionYear(
         calendar_year=calendar_year,

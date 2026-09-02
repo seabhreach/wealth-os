@@ -19,6 +19,7 @@ class CashBridgeRow:
     annual_savings: Decimal
     rsu_sale_proceeds: Decimal
     rental_income: Decimal
+    after_tax_surplus: Decimal
     property_purchase: Decimal
     cash_used_for_spending: Decimal
     other_cash_movement: Decimal
@@ -66,8 +67,13 @@ class RsuAuditSummary:
 
     @property
     def cumulative_rental_income(self) -> Decimal:
-        """Return all rent credited to cash through the first retirement row."""
+        """Return gross rent reported through the first retirement row."""
         return sum((row.rental_income for row in self.cash_bridge), start=ZERO)
+
+    @property
+    def cumulative_after_tax_surplus(self) -> Decimal:
+        """Return recurring income actually retained in cash."""
+        return sum((row.after_tax_surplus for row in self.cash_bridge), start=ZERO)
 
     @property
     def cumulative_property_purchases(self) -> Decimal:
@@ -112,6 +118,7 @@ def _cash_bridge_row(
         annual_savings=trace.annual_savings,
         rsu_sale_proceeds=trace.rsu_sale_proceeds,
         rental_income=trace.rental_income,
+        after_tax_surplus=trace.after_tax_surplus,
         property_purchase=trace.property_purchase_cost,
         cash_used_for_spending=trace.cash_withdrawal,
         other_cash_movement=ZERO,

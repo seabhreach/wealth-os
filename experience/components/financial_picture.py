@@ -26,9 +26,13 @@ class ProposedFinancialPictureUpdate:
 SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Household", ("household", "current_age", "partner_age")),
     ("Income & saving", ("employment_salary", "annual_savings")),
-    ("Cash & investments", ("cash", "investments", "employer_equity", "equity_policy")),
-    ("Pensions", ("pension:",)),
-    ("Property", ("property:",)),
+    (
+        "Available planning assets",
+        ("cash", "investments", "employer_equity", "equity_policy"),
+    ),
+    ("Retirement assets", ("pension:",)),
+    ("Investment property", ("property:",)),
+    ("Primary residence", ("primary_residence:",)),
     ("Retirement", ("planned_retirement_age", "retirement_spending")),
     ("Planning assumptions", ("inflation", "tax")),
 )
@@ -224,7 +228,7 @@ def _unit_for_key(key: str) -> str:
         "retirement_spending",
     } or key.startswith("pension:"):
         return "EUR"
-    if key.endswith(":price") or key.endswith(":rent"):
+    if key.endswith((":price", ":rent", ":value", ":mortgage", ":equity")):
         return "EUR"
     if key == "inflation":
         return "ratio"

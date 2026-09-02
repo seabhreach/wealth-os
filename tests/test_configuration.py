@@ -19,6 +19,10 @@ def test_example_configuration_loads() -> None:
     assert configuration.employment.annual_savings == 20000
     assert configuration.assumptions.start_year == 2026
     assert len(configuration.rental_properties) == 1
+    assert configuration.primary_residence is not None
+    assert configuration.primary_residence.estimated_market_value == 1500000
+    assert configuration.primary_residence.mortgage_balance == 0
+    assert configuration.primary_residence.equity == 1500000
 
 
 def test_configuration_rejects_more_than_three_properties() -> None:

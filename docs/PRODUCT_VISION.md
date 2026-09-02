@@ -81,6 +81,10 @@ Exploration never silently changes the Financial Picture. Material proposed upda
 the user and require confirmation. The source, confidence, and effective version of important
 information remain visible.
 
+The primary residence belongs in the household Financial Picture but is inactive for planning by
+default. Its value or equity must not become liquidity, investable capital, retirement funding or
+scenario affordability without an explicit user intent and a separate typed, validated scenario.
+
 ### Show value before asking for more information
 
 Produce the earliest useful outlook that the available information supports. Then explain how an

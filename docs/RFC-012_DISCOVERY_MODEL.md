@@ -140,6 +140,10 @@ Conversation
 Temporary scenario values can flow directly into immutable Workspace overrides when the user is
 exploring rather than updating baseline facts. The distinction must be visible.
 
+Knowing the value of a primary residence does not establish that its equity is available capital.
+Residence activation is a separate information requirement that can be satisfied only by explicit
+user intent and a typed, validated sale, downsizing, remortgage or equity-release scenario.
+
 ## Boundaries
 
 ### AI boundary

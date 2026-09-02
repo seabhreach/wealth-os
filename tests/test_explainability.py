@@ -37,7 +37,7 @@ def test_first_retirement_funding_trace_uses_each_source_once() -> None:
         trace.opening_cash
         + trace.annual_savings
         + trace.rsu_sale_proceeds
-        + trace.rental_income
+        + trace.after_tax_surplus
         - trace.property_purchase_cost
         - trace.cash_withdrawal
     )

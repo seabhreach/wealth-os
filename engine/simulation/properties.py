@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from engine.config.models import WealthOsConfig
+from engine.simulation.investable import investable_assets, position_concentration
 
 if TYPE_CHECKING:
     from engine.config.models import RentalPropertyConfig
@@ -30,7 +31,7 @@ def apply_rental_properties(
     available cash and receive full-year rent, but are not appreciated until the next year.
     """
     previous_values = [ZERO] * len(config.rental_properties)
-    cumulative_property_cashflow = ZERO
+    cumulative_property_outlay = ZERO
     updated_timeline: list[ProjectionYear] = []
 
     for projection_year in timeline:
@@ -39,7 +40,7 @@ def apply_rental_properties(
             config=config,
             previous_values=previous_values,
         )
-        cash_before_purchase = projection_year.cash_balance + cumulative_property_cashflow
+        cash_before_purchase = projection_year.cash_balance - cumulative_property_outlay
 
         if purchase_outlay > cash_before_purchase:
             property_names = _purchase_names(projection_year.calendar_year, config)
@@ -49,8 +50,10 @@ def apply_rental_properties(
             )
             raise PropertySimulationError(message)
 
-        cash_balance = cash_before_purchase - purchase_outlay + rental_income
-        cumulative_property_cashflow += rental_income - purchase_outlay
+        # Rent is recognized by the funding stage as either spent or retained
+        # after tax. Crediting it here as well would count one receipt twice.
+        cash_balance = cash_before_purchase - purchase_outlay
+        cumulative_property_outlay += purchase_outlay
         property_value = sum(property_values, start=ZERO)
         net_worth = (
             cash_balance
@@ -59,8 +62,11 @@ def apply_rental_properties(
             + projection_year.pension_value
             + property_value
         )
-        amazon_concentration = (
-            projection_year.amazon_value / net_worth if net_worth != ZERO else ZERO
+        amazon_concentration = position_concentration(
+            projection_year.amazon_value,
+            investable_assets(
+                cash_balance, projection_year.etf_value, projection_year.amazon_value
+            ),
         )
         updated_timeline.append(
             replace(

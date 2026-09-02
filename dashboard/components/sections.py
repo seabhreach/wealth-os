@@ -450,7 +450,8 @@ def render_retirement_cash_origin(audit: RsuAuditSummary) -> None:
         "Before retirement, "
         f"{format_eur(audit.cumulative_rsu_sale_proceeds)} of cash was generated from Amazon "
         f"RSUs sold on vest, {format_eur(audit.cumulative_annual_savings)} from annual savings, "
-        f"and {format_eur(audit.cumulative_rental_income)} from rental income."
+        f"and {format_eur(audit.cumulative_after_tax_surplus)} of after-tax recurring surplus "
+        "was retained in cash."
     )
     st.markdown(
         "\n".join(
@@ -459,7 +460,7 @@ def render_retirement_cash_origin(audit: RsuAuditSummary) -> None:
                 f"- **{format_eur(audit.cumulative_property_purchases)} property purchases** "
                 f"+ **{format_eur(audit.cumulative_annual_savings)} annual savings** "
                 f"+ **{format_eur(audit.cumulative_rsu_sale_proceeds)} RSU sale proceeds** "
-                f"+ **{format_eur(audit.cumulative_rental_income)} rental income** "
+                f"+ **{format_eur(audit.cumulative_after_tax_surplus)} after-tax surplus** "
                 f"- **{format_eur(cumulative_cash_used)} cash used for spending** "
                 f"= **{format_eur(first_retirement_row.closing_cash)} first-retirement-year cash**",
                 "The first rental property is purchased from cash in 2027. Future Amazon grants "
@@ -516,6 +517,7 @@ def _cash_bridge_rows(audit: RsuAuditSummary) -> list[dict[str, str]]:
             "Savings": format_eur(row.annual_savings),
             "RSU sales": format_eur(row.rsu_sale_proceeds),
             "Rent": format_eur(row.rental_income),
+            "After-tax surplus": format_eur(row.after_tax_surplus),
             "Property purchase": format_eur(row.property_purchase),
             "Cash used": format_eur(row.cash_used_for_spending),
             "Closing cash": format_eur(row.closing_cash),

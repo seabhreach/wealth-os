@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from engine.config.models import WealthOsConfig
+from engine.simulation.investable import investable_assets, position_concentration
 
 if TYPE_CHECKING:
     from engine.simulation.projection import ProjectionYear
@@ -49,7 +50,9 @@ def apply_amazon_rsus(
             + amazon_value
             + cumulative_sale_proceeds
         )
-        amazon_concentration = amazon_value / net_worth if net_worth != ZERO else ZERO
+        amazon_concentration = position_concentration(
+            amazon_value, investable_assets(cash_balance, projection_year.etf_value, amazon_value)
+        )
         updated_years.append(
             replace(
                 projection_year,

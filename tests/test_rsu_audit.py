@@ -41,16 +41,17 @@ def test_baseline_cash_and_share_bridges_reconcile_to_first_retirement_year() ->
     first_retirement = cash_rows[-1]
 
     assert audit.cumulative_rsu_sale_proceeds == Decimal("1351676.114100000000")
-    assert first_retirement.closing_cash == Decimal("1820896.9939791981555200")
+    assert first_retirement.closing_cash == Decimal("1774921.7226575981555200")
     assert sum((row.annual_savings for row in cash_rows), start=Decimal("0")) == Decimal("120000")
     assert sum((row.rental_income for row in cash_rows), start=Decimal("0")) == Decimal(
         "100929.9354112000"
     )
+    assert audit.cumulative_after_tax_surplus == Decimal("54954.6640896000000")
     assert (
         cash_rows[0].opening_cash
         + audit.cumulative_annual_savings
         + audit.cumulative_rsu_sale_proceeds
-        + audit.cumulative_rental_income
+        + audit.cumulative_after_tax_surplus
         + sum((row.other_cash_movement for row in cash_rows), start=Decimal("0"))
         - audit.cumulative_property_purchases
         - sum((row.cash_used_for_spending for row in cash_rows), start=Decimal("0"))

@@ -51,6 +51,11 @@ rental_properties:
         share: 0.50
       - person: Wife
         share: 0.50
+primary_residence:
+  name: Primary residence
+  purpose: PRIMARY_RESIDENCE
+  estimated_market_value: 1500000
+  mortgage_balance: 0
 assumptions:
   start_year: 2026
   inflation_rate: 0.02

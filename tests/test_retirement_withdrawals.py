@@ -62,7 +62,7 @@ def test_no_withdrawals_before_retirement_and_target_is_inflation_adjusted() -> 
 
 
 def test_rental_income_reduces_gap_without_being_added_twice() -> None:
-    """Rent is already in cash, so it reduces rather than duplicates retirement funding."""
+    """Rent reduces spending funding once and does not also remain in cash."""
     configuration = _retirement_configuration(
         cash_balance="200",
         etf_value="0",
@@ -79,11 +79,14 @@ def test_rental_income_reduces_gap_without_being_added_twice() -> None:
     annual_growth_rate: 0""",
     )
 
-    retirement_year = project_annually(configuration)[1]
+    opening_year, retirement_year = project_annually(configuration)[:2]
 
     assert retirement_year.rental_income == Decimal("20.40")
     assert retirement_year.withdrawal_amount == Decimal("81.60")
-    assert retirement_year.cash_balance == Decimal("158.80")
+    assert retirement_year.cash_balance == Decimal("138.40")
+    assert (
+        retirement_year.cash_balance == opening_year.cash_balance - retirement_year.cash_withdrawal
+    )
 
 
 def test_cash_then_etf_then_amazon_withdrawal_order_and_partial_share_sale() -> None:

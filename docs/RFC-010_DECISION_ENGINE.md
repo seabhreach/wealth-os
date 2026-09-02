@@ -60,6 +60,11 @@ estate, cash, restricted assets, or other positions count as investable assets i
 methodology decision that must be stated in the profile. The engine must not infer the denominator
 from convenient available fields.
 
+The initial Wealth OS concentration profile defines investable assets as cash, taxable
+investments, and employer/direct equity. It excludes pensions, investment property and primary
+residence. Diversified funds belong in the denominator but not the single-security numerator;
+positions from the same direct-equity issuer are aggregated before concentration is calculated.
+
 ## Candidate Generation
 
 1. Validate the declared decision variables and permitted values.

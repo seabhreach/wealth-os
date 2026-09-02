@@ -91,6 +91,29 @@ def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
                 ),
             )
         )
+    residence = configuration.primary_residence
+    if residence is not None:
+        items.extend(
+            (
+                _item("primary_residence:name", "Primary residence", residence.name),
+                _item(
+                    "primary_residence:value",
+                    "Estimated market value",
+                    residence.estimated_market_value,
+                ),
+                _item(
+                    "primary_residence:mortgage",
+                    "Mortgage balance",
+                    residence.mortgage_balance,
+                ),
+                _item("primary_residence:equity", "Residence equity", residence.equity),
+                _item(
+                    "primary_residence:planning_status",
+                    "Planning status",
+                    "In your household position, but not assumed available to fund your plan.",
+                ),
+            )
+        )
     return FinancialPicture(
         baseline_identifier=BASELINE_IDENTIFIER,
         fingerprint=financial_picture_fingerprint(configuration),

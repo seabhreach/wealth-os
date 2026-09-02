@@ -30,6 +30,7 @@ class AnnualCalculationTrace:
     private_pension_income: Decimal
     state_pension_income: Decimal
     total_estimated_tax: Decimal
+    after_tax_surplus: Decimal
     pension_growth_amount: Decimal
     pension_contribution_amount: Decimal
     property_purchase_cost: Decimal
@@ -127,6 +128,7 @@ def annual_calculation_trace(
         private_pension_income=closing.private_pension_income,
         state_pension_income=closing.state_pension_income,
         total_estimated_tax=closing.total_estimated_tax,
+        after_tax_surplus=closing.after_tax_surplus,
         pension_growth_amount=closing.pension_value - opening_pension - pension_contributions,
         pension_contribution_amount=pension_contributions,
         property_purchase_cost=property_purchase_cost,
