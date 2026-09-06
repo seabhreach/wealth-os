@@ -38,7 +38,39 @@ def load_live_baseline(configuration_path: Path) -> LiveBaseline:
 
 def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
     household = configuration.household
+    ordinary_investments = configuration.investments.taxable_investment_value
+    employer_equity_value = (
+        configuration.amazon_rsus.vested_shares
+        * configuration.amazon_rsus.share_price_usd
+        * configuration.amazon_rsus.eur_usd_exchange_rate
+    )
+    retirement_assets = sum(
+        (pension.current_value for pension in configuration.pensions),
+        start=Decimal("0"),
+    )
+    investment_property_value = sum(
+        (property_config.current_value for property_config in configuration.rental_properties),
+        start=Decimal("0"),
+    )
+    liquid_investable_assets = (
+        configuration.investments.cash_balance + ordinary_investments + employer_equity_value
+    )
+    planning_net_worth = liquid_investable_assets + retirement_assets + investment_property_value
+    residence_equity = (
+        configuration.primary_residence.equity
+        if configuration.primary_residence is not None
+        else Decimal("0")
+    )
+    household_net_worth = planning_net_worth + residence_equity
     items = [
+        _item("summary:household_net_worth", "Household net worth", household_net_worth),
+        _item("summary:planning_net_worth", "Planning net worth", planning_net_worth),
+        _item(
+            "summary:liquid_investable_assets",
+            "Liquid / investable assets",
+            liquid_investable_assets,
+        ),
+        _item("summary:retirement_assets", "Retirement assets", retirement_assets),
         _item("household", "Household", household.name),
         _item("current_age", "Current age", household.current_age),
         _item("partner_age", "Partner age", household.spouse_age),
@@ -64,6 +96,11 @@ def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
             "employer_equity",
             "Employer-equity shares",
             configuration.amazon_rsus.vested_shares,
+        ),
+        _item(
+            "employer_equity:value",
+            "Current employer-equity value",
+            employer_equity_value,
         ),
         _item(
             "equity_policy",
@@ -94,7 +131,22 @@ def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
             )
         )
     for pension in configuration.pensions:
-        items.append(_item(f"pension:{pension.name}", pension.name, pension.current_value))
+        items.extend(
+            (
+                _item(f"pension:{pension.name}:value", pension.name, pension.current_value),
+                _item(f"pension:{pension.name}:owner", "Owner", pension.owner),
+                _item(
+                    f"pension:{pension.name}:access_age",
+                    "Access age",
+                    pension.access_age if pension.access_age is not None else "Not recorded",
+                ),
+                _item(
+                    f"pension:{pension.name}:drawdown",
+                    "Available for modelled drawdown",
+                    pension.enabled_for_drawdown,
+                ),
+            )
+        )
     for property_config in configuration.rental_properties:
         items.extend(
             (
@@ -109,9 +161,31 @@ def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
                     property_config.purchase_price,
                 ),
                 _item(
+                    f"property:{property_config.name}:value",
+                    f"{property_config.name} current value",
+                    property_config.current_value,
+                ),
+                _item(
                     f"property:{property_config.name}:rent",
                     f"{property_config.name} annual net rent",
                     property_config.annual_net_rent,
+                ),
+                _item(
+                    f"property:{property_config.name}:appreciation",
+                    f"{property_config.name} annual appreciation",
+                    property_config.annual_growth_rate,
+                ),
+                _item(
+                    f"property:{property_config.name}:rent_growth",
+                    f"{property_config.name} annual rent growth",
+                    configuration.assumptions.inflation_rate,
+                ),
+                _item(
+                    f"property:{property_config.name}:status",
+                    "Property status",
+                    "Planned purchase"
+                    if property_config.purchase_year > configuration.assumptions.start_year
+                    else "Current holding",
                 ),
             )
         )

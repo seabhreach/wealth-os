@@ -17,6 +17,7 @@ from experience.live.models import (
     EvidenceMode,
     FinancialStatementEvidence,
     LimitationEvidence,
+    MetricEvidence,
     NarrativeEvidence,
     TimelineEvidence,
 )
@@ -137,6 +138,34 @@ def test_financial_picture_exposes_canonical_investment_holding_details() -> Non
     assert items["investment:existing-etf:value"] == Decimal("300000")
 
 
+def test_financial_picture_keeps_household_planning_and_liquid_totals_distinct() -> None:
+    """Presentation summaries retain the primary-residence and access boundaries."""
+    items = {item.key: item.value for item in _service().baseline.financial_picture.items}
+
+    assert items["employer_equity:value"] == Decimal("77004.00")
+    assert items["summary:liquid_investable_assets"] == Decimal("877004.00")
+    assert items["summary:retirement_assets"] == Decimal("700000")
+    assert items["summary:planning_net_worth"] == Decimal("1577004.00")
+    assert items["summary:household_net_worth"] == Decimal("3077004.00")
+    household_net_worth = items["summary:household_net_worth"]
+    planning_net_worth = items["summary:planning_net_worth"]
+    residence_equity = items["primary_residence:equity"]
+    assert isinstance(household_net_worth, Decimal)
+    assert isinstance(planning_net_worth, Decimal)
+    assert isinstance(residence_equity, Decimal)
+    assert household_net_worth - planning_net_worth == residence_equity
+
+
+def test_financial_picture_marks_planned_property_and_pension_access_context() -> None:
+    items = {item.key: item.value for item in _service().baseline.financial_picture.items}
+
+    assert items["property:Ardfield Court:status"] == "Planned purchase"
+    assert items["property:Ardfield Court:value"] == Decimal("0")
+    assert items["property:Ardfield Court:rent_growth"] == Decimal("0.02")
+    assert items["pension:Justin pension:access_age"] == 60
+    assert items["pension:Justin pension:drawdown"] is True
+
+
 def test_retirement_age_workspace_matches_existing_scenario_result() -> None:
     service = _service()
     workspace = service.retire_earlier(58)
@@ -228,6 +257,30 @@ def test_property_workspace_reconciles_purchase_liquidity_rent_and_final_wealth(
         isinstance(item, TimelineEvidence) and item.evidence_id == "g002-property-series"
         for item in workspace.evidence
     )
+
+
+def test_property_workspace_exposes_exact_bridge_and_assumption_evidence() -> None:
+    workspace = _service().property_decision()
+    evidence = {item.evidence_id: item for item in workspace.evidence}
+
+    assert _metric(workspace.evidence, "g002-liquid-difference").value == Decimal(
+        "596126.105942835067950553996"
+    )
+    assert _metric(workspace.evidence, "g002-after-tax-surplus").value == Decimal(
+        "54954.6640896000000"
+    )
+    assert _metric(workspace.evidence, "g002-funding-preserved").value == Decimal(
+        "719090.5094259550025333971644"
+    )
+    assert _metric(workspace.evidence, "g002-funding-order-growth").value == Decimal(
+        "22080.9324272800654171568316"
+    )
+    rent_growth = evidence["g002-rent-growth"]
+    appreciation = evidence["g002-appreciation"]
+    assert isinstance(rent_growth, AssumptionEvidence)
+    assert isinstance(appreciation, AssumptionEvidence)
+    assert rent_growth.value == Decimal("0.02")
+    assert appreciation.value == Decimal("0.03")
 
 
 def test_property_financing_returns_only_an_explicit_unsupported_result() -> None:
@@ -483,5 +536,14 @@ def _comparison(evidence: tuple[object, ...], evidence_id: str) -> ComparisonEvi
         candidate
         for candidate in evidence
         if isinstance(candidate, ComparisonEvidence) and candidate.evidence_id == evidence_id
+    )
+    return item
+
+
+def _metric(evidence: tuple[object, ...], evidence_id: str) -> MetricEvidence:
+    item = next(
+        candidate
+        for candidate in evidence
+        if isinstance(candidate, MetricEvidence) and candidate.evidence_id == evidence_id
     )
     return item

@@ -94,6 +94,19 @@ def test_each_non_retirement_goal_uses_visual_goal_specific_composition(goal_key
     assert any(button.label == "Explain this" for button in app.button)
 
 
+def test_g002_workspace_renders_liquidity_property_and_realism_as_separate_concepts() -> None:
+    app = AppTest.from_file(str(APP)).run(timeout=30)
+    app.button(key="wos-recent-g-002").click().run(timeout=30)
+
+    assert not app.exception
+    rendered = _rendered(app)
+    assert "about €596k more liquid assets" in rendered
+    assert "Property value is not liquidity" in rendered
+    assert "Where the liquid difference comes from" in rendered
+    assert "Assumptions and realism boundary" in rendered
+    assert "not a recommendation" in rendered
+
+
 def test_g001_temporary_scenario_does_not_mutate_financial_picture() -> None:
     service = LiveExperienceService.from_example(ROOT)
     baseline = service.baseline.configuration

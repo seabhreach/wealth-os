@@ -69,6 +69,9 @@ EXPERIENCE_CSS = f"""
   --wos-soft: var(--secondary-background-color);
   --wos-raised: color-mix(in srgb, var(--secondary-background-color) 88%, var(--background-color));
   --wos-accent-soft: color-mix(in srgb, var(--primary-color) 13%, var(--background-color));
+  --wos-accent-mid: color-mix(in srgb, var(--primary-color) 30%, var(--background-color));
+  --wos-positive-soft: color-mix(in srgb, #2f8f6b 16%, var(--background-color));
+  --wos-caution-soft: color-mix(in srgb, #b7791f 15%, var(--background-color));
   --wos-line: color-mix(in srgb, var(--text-color) 22%, var(--background-color));
   --wos-accent: var(--primary-color);
   --wos-input-fg: var(--text-color);
@@ -80,7 +83,7 @@ EXPERIENCE_CSS = f"""
 }}
 
 .stApp {{ color: var(--wos-ink); background: var(--wos-page-bg); }}
-.block-container {{ max-width: 1440px; padding-top: 2.5rem; padding-bottom: 3rem; }}
+.block-container {{ box-sizing: border-box; width: 100%; max-width: 1440px; padding-top: 2.5rem; padding-bottom: 3rem; overflow-x: hidden; }}
 #MainMenu, footer {{ visibility: hidden; }}
 
 .wos-shell-wordmark {{ color: var(--wos-ink); font-weight: 750; letter-spacing: -0.02em; }}
@@ -89,7 +92,7 @@ EXPERIENCE_CSS = f"""
 .wos-conversation-answer {{ color: var(--wos-ink); font-size: clamp(1.25rem, 2.2vw, 1.75rem); line-height: 1.5; max-width: 760px; }}
 .wos-enough {{ color: var(--wos-muted); font-size: 1rem; line-height: 1.6; margin: 1.4rem 0 2rem; }}
 .wos-interim-workspace {{ max-width: 1040px; margin: 1rem auto 0; }}
-.wos-picture {{ max-width: 980px; margin: 2.5rem auto 0; }}
+.wos-picture {{ max-width: 1280px; margin: 2.5rem auto 0; }}
 .wos-picture-title {{ color: var(--wos-ink); font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.06; letter-spacing: -0.045em; margin: 0.8rem 0 1rem; }}
 .wos-picture-section {{ display: grid; grid-template-columns: minmax(11rem, 0.7fr) 1.5fr; column-gap: 3rem; padding: 1.6rem 0; border-top: 1px solid var(--wos-line); }}
 .wos-picture-hero {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--wos-line); border: 1px solid var(--wos-line); border-radius: 1.1rem; overflow: hidden; margin: 2.4rem 0 1rem; }}
@@ -104,6 +107,63 @@ EXPERIENCE_CSS = f"""
 .wos-picture-summary-row span {{ color: var(--wos-muted); }}
 .wos-picture-summary-row strong {{ color: var(--wos-ink); text-align: right; font-weight: 600; }}
 .wos-missing {{ grid-column: 2; color: var(--wos-muted); margin: 0; }}
+
+.wos-picture-metric-grid, .wos-metric-grid, .wos-g002-outcomes, .wos-assumption-grid {{ display: grid; gap: 1rem; margin: 2.4rem 0 1rem; }}
+.wos-picture-metric-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+.wos-metric-grid, .wos-g002-outcomes {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
+.wos-assumption-grid {{ grid-template-columns: repeat(4, minmax(0, 1fr)); }}
+.wos-metric-card {{ box-sizing: border-box; min-width: 0; padding: 1.35rem; border: 1px solid var(--wos-line); border-radius: 1rem; background: var(--wos-raised); }}
+.wos-metric-card > span, .wos-subsection-label, .wos-record-type, .wos-domain-card > span, .wos-limit-panel > div > span {{ display: block; color: var(--wos-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }}
+.wos-metric-card > strong {{ display: block; color: var(--wos-ink); font-size: clamp(1.3rem, 2.2vw, 2rem); letter-spacing: -0.035em; line-height: 1.05; margin: 1.25rem 0 0.7rem; overflow-wrap: anywhere; }}
+.wos-metric-card > small, .wos-domain-card > small, .wos-holding-card > small {{ display: block; color: var(--wos-muted); font-size: 0.78rem; line-height: 1.45; }}
+.wos-focus-heading {{ border-top: 1px solid var(--wos-line); padding-top: 2rem; margin-top: 3.25rem; }}
+.wos-focus-heading h2 {{ color: var(--wos-ink); font-size: clamp(1.55rem, 2.5vw, 2.25rem); letter-spacing: -0.03em; margin: 0; }}
+.wos-focus-heading p {{ color: var(--wos-muted); line-height: 1.55; max-width: 720px; margin: 0.55rem 0 0; }}
+.wos-boundary-map {{ display: grid; grid-template-columns: minmax(10rem, 0.7fr) minmax(0, 2.6fr) minmax(12rem, 1fr); gap: 0.8rem; align-items: stretch; margin-top: 1.5rem; }}
+.wos-boundary-map > div {{ border-radius: 1rem; padding: 1.25rem; }}
+.wos-boundary-label {{ border: 1px solid var(--wos-line); background: var(--wos-soft); }}
+.wos-boundary-planning {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; background: var(--wos-accent-soft); border: 1px solid var(--wos-accent-mid); }}
+.wos-boundary-planning > div {{ border-right: 1px solid var(--wos-accent-mid); padding-right: 0.7rem; }}
+.wos-boundary-planning > div:nth-child(3) {{ border-right: 0; }}
+.wos-boundary-planning > strong {{ grid-column: 1 / -1; color: var(--wos-ink); font-size: 1.5rem; margin-top: 0.9rem; }}
+.wos-boundary-planning > em {{ grid-column: 1 / -1; color: var(--wos-muted); font-size: 0.76rem; font-style: normal; margin-top: -0.65rem; }}
+.wos-boundary-home {{ display: flex; flex-direction: column; justify-content: space-between; background: var(--wos-caution-soft); border: 1px dashed var(--wos-line); }}
+.wos-boundary-map span {{ display: block; color: var(--wos-ink); font-size: 0.86rem; font-weight: 700; line-height: 1.35; }}
+.wos-boundary-map small {{ display: block; color: var(--wos-muted); font-size: 0.72rem; line-height: 1.4; margin-top: 0.35rem; }}
+.wos-boundary-home strong {{ color: var(--wos-ink); font-size: 1.35rem; margin-top: 1.3rem; }}
+.wos-subsection-label {{ margin: 1.8rem 0 0.7rem; }}
+.wos-record-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }}
+.wos-holding-card, .wos-domain-card, .wos-property-card {{ box-sizing: border-box; border: 1px solid var(--wos-line); border-radius: 1rem; background: var(--wos-raised); padding: 1.3rem; min-width: 0; }}
+.wos-holding-card h3, .wos-domain-card h3, .wos-property-card h3 {{ color: var(--wos-ink); font-size: 1.05rem; margin: 0.55rem 0 1rem; }}
+.wos-holding-card > strong, .wos-domain-card > strong {{ display: block; color: var(--wos-ink); font-size: 1.55rem; margin-bottom: 0.65rem; }}
+.wos-property-grid {{ display: grid; gap: 1rem; margin-top: 1.2rem; }}
+.wos-status-pill {{ display: inline-block; color: var(--wos-accent); background: var(--wos-accent-soft); border-radius: 999px; padding: 0.3rem 0.65rem; font-size: 0.72rem; }}
+.wos-mini-grid {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }}
+.wos-mini-grid small {{ display: block; color: var(--wos-muted); font-size: 0.72rem; margin-bottom: 0.35rem; }}
+.wos-mini-grid strong {{ display: block; color: var(--wos-ink); font-size: 1rem; overflow-wrap: anywhere; }}
+.wos-property-card p {{ color: var(--wos-muted); font-size: 0.8rem; margin: 1.2rem 0 0; }}
+.wos-residence-boundary {{ display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; align-items: center; margin-top: 3.25rem; padding: 1.6rem; background: var(--wos-caution-soft); border: 1px dashed var(--wos-line); border-radius: 1.1rem; }}
+.wos-residence-boundary h2 {{ color: var(--wos-ink); margin: 0.45rem 0; }}
+.wos-residence-boundary p {{ color: var(--wos-secondary); line-height: 1.5; margin: 0; }}
+
+.wos-g002-workspace {{ max-width: 1280px; margin: 1rem auto 0; }}
+.wos-g002-title {{ color: var(--wos-ink); font-size: clamp(2.5rem, 5vw, 4.6rem); line-height: 1.02; letter-spacing: -0.055em; margin: 0.7rem 0 1.4rem; max-width: 960px; }}
+.wos-g002-hero {{ box-sizing: border-box; width: 100%; max-width: 100%; padding: clamp(1.5rem, 3vw, 2.6rem); border-radius: 1.3rem; background: var(--wos-positive-soft); border: 1px solid color-mix(in srgb, #2f8f6b 38%, var(--background-color)); }}
+.wos-g002-hero > span {{ color: var(--wos-accent); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }}
+.wos-g002-hero h2 {{ color: var(--wos-ink); font-size: clamp(1.6rem, 3vw, 2.75rem); line-height: 1.18; letter-spacing: -0.035em; max-width: 900px; overflow-wrap: break-word; margin: 0.75rem 0; }}
+.wos-g002-hero p {{ color: var(--wos-secondary); line-height: 1.6; max-width: 950px; margin: 0; }}
+.wos-g002-outcomes {{ margin-top: 1.2rem; }}
+.wos-causal-bridge {{ display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1.4rem; }}
+.wos-bridge-step {{ box-sizing: border-box; position: relative; min-width: 0; padding: 1.15rem; border: 1px solid var(--wos-line); border-radius: 1rem; background: var(--wos-raised); }}
+.wos-bridge-step:not(:last-child)::after {{ content: "→"; position: absolute; right: -0.75rem; top: 50%; z-index: 2; width: 0.75rem; color: var(--wos-muted); text-align: center; }}
+.wos-step-number {{ display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--wos-accent-soft); color: var(--wos-accent); font-size: 0.72rem; font-weight: 750; }}
+.wos-bridge-step h3 {{ color: var(--wos-muted); font-size: 0.76rem; line-height: 1.35; margin: 0.8rem 0 0.5rem; min-height: 2rem; }}
+.wos-bridge-step strong {{ display: block; color: var(--wos-ink); font-size: clamp(1rem, 1.6vw, 1.35rem); letter-spacing: -0.025em; overflow-wrap: anywhere; }}
+.wos-bridge-step p {{ color: var(--wos-muted); font-size: 0.72rem; line-height: 1.45; margin: 0.8rem 0 0; }}
+.wos-limit-panel {{ display: grid; grid-template-columns: 0.8fr 1.5fr; gap: 1px; overflow: hidden; margin-top: 1.2rem; border: 1px solid var(--wos-line); border-radius: 1rem; background: var(--wos-line); }}
+.wos-limit-panel > div {{ padding: 1.35rem; background: var(--wos-raised); }}
+.wos-limit-panel h3 {{ color: var(--wos-ink); font-size: 1rem; margin: 0.5rem 0; }}
+.wos-limit-panel p {{ color: var(--wos-muted); font-size: 0.86rem; line-height: 1.55; margin: 0; }}
 
 .wos-home {{ max-width: 760px; margin: 8vh auto 0; }}
 .wos-wordmark {{ font-size: 0.82rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wos-muted); }}
@@ -180,6 +240,12 @@ div[data-testid="stButton"] > button[kind="tertiary"] {{ min-height: auto; paddi
 div[data-testid="stButton"] > button[kind="tertiary"]:hover {{ background: transparent; color: var(--wos-accent); }}
 div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput"] textarea:focus-visible {{ outline: 3px solid color-mix(in srgb, var(--wos-accent) 55%, transparent); outline-offset: 2px; }}
 
+@media (max-width: 1200px) {{
+  .wos-picture-metric-grid, .wos-assumption-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .wos-causal-bridge {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
+  .wos-bridge-step:not(:last-child)::after {{ content: none; }}
+}}
+
 @media (max-width: {RESPONSIVE_BREAKPOINT_PX}px) {{
   div[data-testid="stHorizontalBlock"]:has(.wos-pane-label) {{ flex-direction: column; gap: 2rem; }}
   div[data-testid="stHorizontalBlock"]:has(.wos-pane-label) > div[data-testid="stColumn"] {{ width: 100% !important; flex: 1 1 100% !important; }}
@@ -190,6 +256,12 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-conversation-state {{ margin-top: 4vh; }}
   .wos-visual-workspace {{ max-width: 100%; }}
   .wos-interim-workspace, .wos-picture {{ max-width: 100%; }}
+  .wos-g002-workspace {{ max-width: 100%; }}
+  .wos-picture-metric-grid, .wos-metric-grid, .wos-g002-outcomes, .wos-assumption-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .wos-boundary-map {{ grid-template-columns: 1fr; }}
+  .wos-causal-bridge {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .wos-bridge-step:not(:last-child)::after {{ content: none; }}
+  .wos-limit-panel {{ grid-template-columns: 1fr; }}
   .wos-tradeoff-grid {{ grid-template-columns: 1fr; gap: 0.8rem; }}
   .wos-timeline {{ grid-template-columns: 1fr; }}
   .wos-milestone {{ border-top: 0; border-left: 2px solid var(--wos-line); padding: 0 0 1.5rem 1.2rem; min-height: 0; }}
@@ -207,6 +279,10 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-picture-retirement-callout small {{ grid-column: 1; }}
   .wos-picture-section h2, .wos-picture-summary-row, .wos-missing {{ grid-column: 1; grid-row: auto; }}
   .wos-picture-summary-row {{ align-items: baseline; }}
+  .wos-picture-metric-grid, .wos-metric-grid, .wos-g002-outcomes, .wos-assumption-grid, .wos-record-grid, .wos-causal-bridge {{ grid-template-columns: 1fr; }}
+  .wos-boundary-planning, .wos-mini-grid, .wos-residence-boundary {{ grid-template-columns: 1fr; }}
+  .wos-boundary-planning > div {{ border-right: 0; border-bottom: 1px solid var(--wos-accent-mid); padding: 0 0 0.7rem; }}
+  .wos-residence-boundary {{ gap: 1.2rem; }}
 }}
 </style>
 """

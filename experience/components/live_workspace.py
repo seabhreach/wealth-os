@@ -7,6 +7,7 @@ from html import escape
 
 import streamlit as st
 
+from experience.components.g002_property_workspace import render_g002_property_workspace
 from experience.display import format_display_value, format_table_value
 from experience.live.models import (
     AssumptionEvidence,
@@ -22,10 +23,16 @@ from experience.live.models import (
     TableEvidence,
     TimelineEvidence,
 )
+from experience.models import GoalId
 
 
 def render_live_workspace(workspace: LiveWorkspace) -> str | None:
     """Render an answer-first, goal-specific Workspace from immutable evidence."""
+
+    if workspace.goal_id is GoalId.INVESTMENT_PROPERTY and any(
+        item.evidence_id == "g002-liquid-difference" for item in workspace.evidence
+    ):
+        return render_g002_property_workspace(workspace)
 
     st.markdown('<main class="wos-interim-workspace">', unsafe_allow_html=True)
     st.markdown('<div class="wos-visual-kicker">Workspace</div>', unsafe_allow_html=True)
@@ -65,8 +72,6 @@ def render_live_workspace(workspace: LiveWorkspace) -> str | None:
 
 def _render_goal_body(workspace: LiveWorkspace, evidence: dict[str, LiveEvidence]) -> str | None:
     """Select a bounded visual composition for each validated goal."""
-
-    from experience.models import GoalId
 
     layouts: dict[GoalId, tuple[str, tuple[str, ...], str]] = {
         GoalId.INVESTMENT_PROPERTY: (
