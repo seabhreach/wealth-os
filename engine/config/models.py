@@ -5,6 +5,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from engine.assets import InvestmentAssetType, InvestmentHolding
+
 
 class HouseholdConfig(BaseModel):
     """Identity and life-stage inputs for the household being projected."""
@@ -37,13 +39,53 @@ class EmploymentConfig(BaseModel):
 
 
 class InvestmentConfig(BaseModel):
-    """Cash and ETF balance inputs."""
+    """Cash plus the canonical ordinary taxable-investment holdings."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     cash_balance: Decimal = Field(ge=0)
-    etf_value: Decimal = Field(ge=0)
-    etf_growth_rate: Decimal
+    holdings: tuple[InvestmentHolding, ...]
+    taxable_investment_growth_rate: Decimal
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_etf_input(cls, value: object) -> object:
+        """Adapt the legacy aggregate ETF schema into one canonical holding."""
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        has_legacy_value = "etf_value" in data
+        has_legacy_growth = "etf_growth_rate" in data
+        if not has_legacy_value and not has_legacy_growth:
+            return data
+        if has_legacy_value != has_legacy_growth:
+            raise ValueError("Legacy ETF input requires both etf_value and etf_growth_rate.")
+        if "holdings" in data or "taxable_investment_growth_rate" in data:
+            raise ValueError("Legacy ETF input cannot be combined with canonical holdings.")
+        legacy_value = data.pop("etf_value")
+        data["taxable_investment_growth_rate"] = data.pop("etf_growth_rate")
+        data["holdings"] = (
+            {
+                "holding_id": "legacy-etf",
+                "name": "Legacy ETF holding",
+                "asset_type": InvestmentAssetType.ETF,
+                "current_value": legacy_value,
+            },
+        )
+        return data
+
+    @model_validator(mode="after")
+    def validate_holding_ids(self) -> Self:
+        """Require stable holding identities within one Financial Picture."""
+        holding_ids = [holding.holding_id for holding in self.holdings]
+        if len(holding_ids) != len(set(holding_ids)):
+            raise ValueError("Investment holding IDs must be unique.")
+        return self
+
+    @property
+    def taxable_investment_value(self) -> Decimal:
+        """Derive the aggregate engine balance from canonical holdings."""
+        return sum((holding.current_value for holding in self.holdings), start=Decimal("0"))
 
 
 class AmazonRsuConfig(BaseModel):

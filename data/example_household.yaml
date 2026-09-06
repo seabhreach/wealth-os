@@ -9,8 +9,12 @@ employment:
   annual_savings: 20000
 investments:
   cash_balance: 500000
-  etf_value: 300000
-  etf_growth_rate: 0.06
+  taxable_investment_growth_rate: 0.06
+  holdings:
+    - holding_id: existing-etf
+      name: Existing ETF holding
+      asset_type: ETF
+      current_value: 300000
 amazon_rsus:
   # 310 shares × USD 270 × EUR 0.92/USD ≈ EUR 77,000 opening value.
   vested_shares: 310

@@ -38,7 +38,7 @@ class AnnualTaxStatement:
     total_tax: Decimal
     net_recurring_income: Decimal
     cash_used: Decimal
-    etf_units_sold: Decimal
+    taxable_investments_sold: Decimal
     amazon_shares_sold: Decimal
     unfunded_amount: Decimal
     retirement_spending: Decimal
@@ -46,12 +46,17 @@ class AnnualTaxStatement:
     people: tuple[PersonTaxStatement, ...]
 
     @property
+    def etf_units_sold(self) -> Decimal:
+        """Return taxable-investment sales for legacy reporting callers."""
+        return self.taxable_investments_sold
+
+    @property
     def total_funding(self) -> Decimal:
         """Return the visible net funding bridge total."""
         return (
             self.net_recurring_income
             + self.cash_used
-            + self.etf_units_sold
+            + self.taxable_investments_sold
             + self.amazon_shares_sold
             + self.unfunded_amount
         )
@@ -105,7 +110,7 @@ def annual_tax_statement(
             ZERO,
             year.gross_recurring_income,
             year.cash_withdrawal,
-            year.etf_withdrawal,
+            year.taxable_investment_withdrawal,
             year.amazon_withdrawal,
             year.unfunded_spending,
             year.annual_spending,
@@ -136,7 +141,7 @@ def annual_tax_statement(
         year.total_estimated_tax,
         year.net_recurring_income,
         year.cash_withdrawal,
-        year.etf_withdrawal,
+        year.taxable_investment_withdrawal,
         year.amazon_withdrawal,
         year.unfunded_spending,
         year.annual_spending,
@@ -244,7 +249,9 @@ def tax_advisor_insights(config: WealthOsConfig) -> tuple[str, ...]:
         "Tax reduces final liquid assets by approximately "
         f"{final_liquid_assets_reduction:.0f} "
         "EUR under the current deterministic assumptions.",
-        "The model excludes CGT on ETF and Amazon sales, so after-tax results may be overstated.",
+        "The model excludes asset-specific disposal tax, including CGT and ETF/fund deemed "
+        "disposal, on taxable-investment and Amazon sales, so after-tax results may be "
+        "overstated.",
     ]
     if ownership:
         spread = max(item.total_tax for item in ownership) - min(

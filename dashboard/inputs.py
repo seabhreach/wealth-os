@@ -3,6 +3,7 @@
 from copy import deepcopy
 from decimal import Decimal
 from typing import Any
+from uuid import uuid4
 
 import yaml
 from pydantic import ValidationError
@@ -15,6 +16,10 @@ FormData = dict[str, Any]
 def configuration_to_form_data(configuration: WealthOsConfig) -> FormData:
     """Return mutable form defaults from the current immutable configuration."""
     data = deepcopy(configuration.model_dump(mode="python"))
+    investments = data["investments"]
+    if not isinstance(investments, dict):
+        raise TypeError("investments must be a mapping in dashboard form data")
+    investments["holdings"] = [dict(holding) for holding in investments["holdings"]]
     data["pensions"] = [dict(pension) for pension in data["pensions"]]
     data["rental_properties"] = [
         {
@@ -60,6 +65,49 @@ def add_pension(form_data: FormData) -> FormData:
             "annual_contribution": Decimal("0"),
         }
     )
+    return updated_data
+
+
+def add_investment_holding(form_data: FormData) -> FormData:
+    """Return form data with one blank ordinary investment holding appended."""
+    updated_data = deepcopy(form_data)
+    investments = updated_data["investments"]
+    if not isinstance(investments, dict):
+        raise TypeError("investments must be a mapping in dashboard form data")
+    holdings = investments["holdings"]
+    if not isinstance(holdings, list):
+        raise TypeError("investment holdings must be a list in dashboard form data")
+    existing_ids = {str(holding["holding_id"]) for holding in holdings}
+    holding_id = f"investment-{uuid4().hex}"
+    while holding_id in existing_ids:
+        holding_id = f"investment-{uuid4().hex}"
+    holdings.append(
+        {
+            "holding_id": holding_id,
+            "name": "New investment",
+            "asset_type": "OTHER",
+            "current_value": Decimal("0"),
+            "security_identifier": None,
+        }
+    )
+    return updated_data
+
+
+def remove_investment_holding(form_data: FormData, holding_id: str) -> FormData:
+    """Return form data with exactly one identified investment holding removed."""
+    updated_data = deepcopy(form_data)
+    investments = updated_data["investments"]
+    if not isinstance(investments, dict):
+        raise TypeError("investments must be a mapping in dashboard form data")
+    holdings = investments["holdings"]
+    if not isinstance(holdings, list):
+        raise TypeError("investment holdings must be a list in dashboard form data")
+    matching_indices = [
+        index for index, holding in enumerate(holdings) if holding["holding_id"] == holding_id
+    ]
+    if len(matching_indices) != 1:
+        raise ValueError(f"Expected exactly one investment holding with ID {holding_id!r}.")
+    holdings.pop(matching_indices[0])
     return updated_data
 
 

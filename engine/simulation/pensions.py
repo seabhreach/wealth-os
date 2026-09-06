@@ -51,7 +51,7 @@ def apply_pension_growth(
             projection_year.amazon_value,
             investable_assets(
                 projection_year.cash_balance,
-                projection_year.etf_value,
+                projection_year.taxable_investment_value,
                 projection_year.amazon_value,
             ),
         )

@@ -299,12 +299,13 @@ def _render_overview(
             (
                 "Current net worth",
                 format_compact_eur(current_year.net_worth),
-                "Cash, ETFs, Amazon, pensions, and rental property; the family home is excluded.",
+                "Cash, taxable investments, Amazon, pensions, and rental property; "
+                "the family home is excluded.",
             ),
             (
                 "Liquid assets",
                 format_compact_eur(current_year.liquid_assets),
-                "Cash, ETFs, and Amazon only; pensions and property are excluded.",
+                "Cash, taxable investments, and Amazon only; pensions and property are excluded.",
             ),
             ("Years to retirement", str(readiness.retirement_age - current_year.age), None),
             (
@@ -324,7 +325,7 @@ def _render_overview(
     render_readiness_banner(readiness)
     st.caption(
         "What drives this result: net rent, pension drawdown, and State Pension reduce spending "
-        "needs; cash, ETFs, then Amazon fund any remaining gap."
+        "needs; cash, taxable investments, then Amazon fund any remaining gap."
     )
     warning = preserved_wealth_warning(projection[-1])
     if warning is not None:
@@ -451,8 +452,8 @@ def _render_cashflow(projection: tuple[ProjectionYear, ...]) -> None:
     _plot(retirement_cashflow_figure(projection))
     _plot(spending_funding_figure(projection))
     st.caption(
-        "Rental income reduces the spending gap before withdrawals from cash, ETFs, and retained "
-        "Amazon shares."
+        "Rental income reduces the spending gap before withdrawals from cash, taxable "
+        "investments, and retained Amazon shares."
     )
 
 
@@ -661,9 +662,11 @@ def _render_details(projection: tuple[ProjectionYear, ...], configuration: Wealt
     st.divider()
     st.subheader("Model limitations")
     st.warning(
-        "Planning estimate only. No CGT, ETF deemed disposal, Residential Premises Rental Income "
-        "Relief, pension lump-sum tax treatment, filing-level deductions, or relief claims are "
-        "modelled. Future tax thresholds are indexed assumptions, not forecasts."
+        "Planning estimate only. Asset-specific investment tax—including ETF/fund deemed "
+        "disposal, share or crypto CGT, commodity disposals and bond-specific taxation—is not "
+        "modelled. Residential Premises Rental Income Relief, pension lump-sum tax treatment, "
+        "filing-level deductions and relief claims are also excluded. Future tax thresholds are "
+        "indexed assumptions, not forecasts."
     )
 
 

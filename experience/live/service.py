@@ -435,7 +435,7 @@ class LiveExperienceService:
                 "Funding-order and growth interaction",
                 EvidencePurpose.EXPLANATION,
                 LIVE,
-                "Residual ETF timing and compounding effect",
+                "Residual taxable-investment timing and compounding effect",
                 reconciliation.liquid_growth_and_funding_order_effect,
                 "EUR",
             ),
@@ -642,7 +642,7 @@ class LiveExperienceService:
                 "Limitations",
                 EvidencePurpose.LIMITATION,
                 LIVE,
-                "The concentration denominator is investable assets: cash, taxable ETF investments and employer equity. Pensions, investment property and the primary residence are excluded. Disposal taxes are not modelled.",
+                "The concentration denominator is investable assets: cash, taxable investments and employer equity. Pensions, investment property and the primary residence are excluded. Asset-specific disposal taxes are not modelled.",
             ),
         )
         return self._workspace(
@@ -901,7 +901,10 @@ class LiveExperienceService:
                     ("Estimated income tax", statement.funding.estimated_income_tax),
                     ("Estimated USC", statement.funding.estimated_usc),
                     ("Cash used", statement.funding.cash_used),
-                    ("ETF units sold", statement.funding.etf_units_sold),
+                    (
+                        "Taxable investments sold",
+                        statement.funding.taxable_investments_sold,
+                    ),
                     ("Employer-equity shares sold", statement.funding.amazon_shares_sold),
                     ("Unfunded amount", statement.funding.unfunded_amount),
                 ),
@@ -1161,8 +1164,11 @@ def _spending_answer(result: ScenarioResult) -> str:
 
 def _cash_transition_observation(statement: AnnualFinancialStatement) -> str:
     funding = statement.funding
-    if funding.etf_units_sold:
-        return "The selected year has moved beyond cash-only funding and includes ETF sales."
+    if funding.taxable_investments_sold:
+        return (
+            "The selected year has moved beyond cash-only funding and includes taxable-"
+            "investment sales."
+        )
     if funding.amazon_shares_sold:
         return "The selected year includes employer-equity sales after earlier liquid sources."
     if funding.cash_used:

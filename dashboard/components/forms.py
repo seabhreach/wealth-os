@@ -2,25 +2,31 @@
 
 from copy import deepcopy
 from decimal import Decimal
+from typing import Literal
 
 import streamlit as st
 from pydantic import ValidationError
 
 from dashboard.inputs import (
     FormData,
+    add_investment_holding,
     add_pension,
     add_rental_property,
     configuration_to_yaml,
     form_data_to_configuration,
     percentage_to_rate,
     rate_to_percentage,
+    remove_investment_holding,
     remove_pension,
     remove_rental_property,
     validation_error_messages,
 )
 from dashboard.navigation import configuration_status
+from engine.assets import InvestmentAssetType
 from engine.config import ConfigurationError, load_configuration
 from engine.config.models import WealthOsConfig
+
+InvestmentCollectionAction = tuple[Literal["add", "remove"], str | None]
 
 
 def render_inputs_page(form_data: FormData) -> tuple[WealthOsConfig | None, FormData]:
@@ -30,8 +36,18 @@ def render_inputs_page(form_data: FormData) -> tuple[WealthOsConfig | None, Form
     _render_collection_controls(form_data)
 
     with st.form("wealth_os_inputs"):
-        submitted_data = _render_form_fields(form_data)
+        submitted_data, investment_action = _render_form_fields(form_data)
         submitted = st.form_submit_button("Run projection", type="primary")
+    if investment_action is not None:
+        action, holding_id = investment_action
+        if action == "add":
+            updated_data = add_investment_holding(submitted_data)
+        else:
+            if holding_id is None:
+                raise ValueError("A holding ID is required to remove an investment.")
+            updated_data = remove_investment_holding(submitted_data, holding_id)
+        st.session_state["wealth_os_form_data"] = updated_data
+        st.rerun()
     if not submitted:
         return None, form_data
 
@@ -95,7 +111,9 @@ def _render_collection_controls(form_data: FormData) -> None:
                         st.rerun()
 
 
-def _render_form_fields(form_data: FormData) -> FormData:
+def _render_form_fields(
+    form_data: FormData,
+) -> tuple[FormData, InvestmentCollectionAction | None]:
     """Render form sections with human-friendly labels and percentage controls."""
     household = form_data["household"]
     employment = form_data["employment"]
@@ -150,16 +168,14 @@ def _render_form_fields(form_data: FormData) -> FormData:
             value=float(investments["cash_balance"]),
             step=1000.0,
         )
-        investments["etf_value"] = right.number_input(
-            "ETF value (EUR)", min_value=0.0, value=float(investments["etf_value"]), step=1000.0
-        )
-        investments["etf_growth_rate"] = percentage_to_rate(
+        investments["taxable_investment_growth_rate"] = percentage_to_rate(
             left.number_input(
-                "Expected ETF return (%)",
-                value=rate_to_percentage(investments["etf_growth_rate"]),
+                "Expected taxable-investment return (%)",
+                value=rate_to_percentage(investments["taxable_investment_growth_rate"]),
                 step=0.1,
             )
         )
+        investment_action = _render_investment_holdings(investments)
 
     with st.expander("Amazon RSUs", expanded=False):
         st.caption(
@@ -198,7 +214,7 @@ def _render_form_fields(form_data: FormData) -> FormData:
     _render_pensions(form_data)
     _render_tax(form_data)
     _render_properties(form_data)
-    return form_data
+    return form_data, investment_action
 
 
 def render_input_context(configuration: WealthOsConfig, source: str) -> WealthOsConfig | None:
@@ -226,7 +242,9 @@ def render_input_context(configuration: WealthOsConfig, source: str) -> WealthOs
         )
         st.caption(
             f"Inflation {rate_to_percentage(configuration.assumptions.inflation_rate):.1f}% · "
-            f"ETF growth {rate_to_percentage(configuration.investments.etf_growth_rate):.1f}% · "
+            "Taxable-investment growth "
+            f"{rate_to_percentage(configuration.investments.taxable_investment_growth_rate):.1f}% "
+            "· "
             "Amazon growth "
             f"{rate_to_percentage(configuration.amazon_rsus.annual_growth_rate):.1f}% · "
             f"{len(configuration.rental_properties)} rental properties."
@@ -236,6 +254,61 @@ def render_input_context(configuration: WealthOsConfig, source: str) -> WealthOs
             "retirement advice."
         )
     return None
+
+
+def _render_investment_holdings(
+    investments: FormData,
+) -> InvestmentCollectionAction | None:
+    """Render repeatable holding editors and return the requested collection action."""
+    holdings = investments["holdings"]
+    if not isinstance(holdings, list):
+        raise TypeError("investment holdings must be a list in dashboard form data")
+    labels = {asset_type.customer_label: asset_type.value for asset_type in InvestmentAssetType}
+    requested_action: InvestmentCollectionAction | None = None
+    st.markdown("**Investments**")
+    if not holdings:
+        st.caption("No investments are included.")
+    for index, holding in enumerate(holdings, start=1):
+        holding_id = str(holding["holding_id"])
+        with st.container(border=True):
+            st.markdown(f"**Investment {index}: {holding['name']}**")
+            left, right = st.columns(2)
+            holding["name"] = left.text_input(
+                "Holding name",
+                value=str(holding["name"]),
+                key=f"investment_name_{holding_id}",
+            )
+            current_type = InvestmentAssetType(str(holding["asset_type"]))
+            selected_label = right.selectbox(
+                "Investment type",
+                tuple(labels),
+                index=tuple(labels).index(current_type.customer_label),
+                key=f"investment_type_{holding_id}",
+            )
+            holding["asset_type"] = labels[selected_label]
+            value_column, identity_column = st.columns(2)
+            holding["current_value"] = value_column.number_input(
+                "Current value (EUR)",
+                min_value=0.0,
+                value=float(holding["current_value"]),
+                step=1000.0,
+                key=f"investment_value_{holding_id}",
+            )
+            security_identifier = identity_column.text_input(
+                "Security identity (optional)",
+                value=str(holding.get("security_identifier") or ""),
+                key=f"investment_security_identifier_{holding_id}",
+            )
+            holding["security_identifier"] = security_identifier.strip() or None
+            if st.form_submit_button(
+                "Remove investment",
+                key=f"remove_investment_{holding_id}",
+                use_container_width=True,
+            ):
+                requested_action = ("remove", holding_id)
+    if st.form_submit_button("Add investment", use_container_width=True):
+        requested_action = ("add", None)
+    return requested_action
 
 
 def _render_pensions(form_data: FormData) -> None:

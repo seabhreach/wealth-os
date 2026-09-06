@@ -16,13 +16,13 @@ class AnnualCalculationTrace:
 
     calendar_year: int
     opening_cash: Decimal
-    opening_etf_value: Decimal
+    opening_taxable_investment_value: Decimal
     opening_amazon_shares: Decimal
     opening_amazon_value: Decimal
     opening_pension_value: Decimal
     opening_property_value: Decimal
     annual_savings: Decimal
-    etf_growth_amount: Decimal
+    taxable_investment_growth_amount: Decimal
     amazon_growth_amount: Decimal
     rsu_shares_vested: Decimal
     rsu_sale_proceeds: Decimal
@@ -37,16 +37,36 @@ class AnnualCalculationTrace:
     property_appreciation: Decimal
     retirement_spending: Decimal
     cash_withdrawal: Decimal
-    etf_withdrawal: Decimal
+    taxable_investment_withdrawal: Decimal
     amazon_withdrawal: Decimal
     unfunded_spending: Decimal
     closing_cash: Decimal
-    closing_etf_value: Decimal
+    closing_taxable_investment_value: Decimal
     closing_amazon_shares: Decimal
     closing_amazon_value: Decimal
     closing_pension_value: Decimal
     closing_property_value: Decimal
     closing_net_worth: Decimal
+
+    @property
+    def opening_etf_value(self) -> Decimal:
+        """Return opening taxable investments for legacy reporting callers."""
+        return self.opening_taxable_investment_value
+
+    @property
+    def etf_growth_amount(self) -> Decimal:
+        """Return taxable-investment growth for legacy reporting callers."""
+        return self.taxable_investment_growth_amount
+
+    @property
+    def etf_withdrawal(self) -> Decimal:
+        """Return taxable-investment sales for legacy reporting callers."""
+        return self.taxable_investment_withdrawal
+
+    @property
+    def closing_etf_value(self) -> Decimal:
+        """Return closing taxable investments for legacy reporting callers."""
+        return self.closing_taxable_investment_value
 
 
 def annual_calculation_trace(
@@ -62,7 +82,11 @@ def annual_calculation_trace(
     closing = timeline[index]
     opening = timeline[index - 1] if index > 0 else None
     opening_cash = opening.cash_balance if opening is not None else config.investments.cash_balance
-    opening_etf = opening.etf_value if opening is not None else config.investments.etf_value
+    opening_taxable_investments = (
+        opening.taxable_investment_value
+        if opening is not None
+        else config.investments.taxable_investment_value
+    )
     opening_amazon_shares = (
         opening.amazon_shares if opening is not None else config.amazon_rsus.vested_shares
     )
@@ -109,13 +133,17 @@ def annual_calculation_trace(
     return AnnualCalculationTrace(
         calendar_year=closing.calendar_year,
         opening_cash=opening_cash,
-        opening_etf_value=opening_etf,
+        opening_taxable_investment_value=opening_taxable_investments,
         opening_amazon_shares=opening_amazon_shares,
         opening_amazon_value=opening_amazon_value,
         opening_pension_value=opening_pension,
         opening_property_value=opening_property,
         annual_savings=closing.annual_savings,
-        etf_growth_amount=closing.etf_value + closing.etf_withdrawal - opening_etf,
+        taxable_investment_growth_amount=(
+            closing.taxable_investment_value
+            + closing.taxable_investment_withdrawal
+            - opening_taxable_investments
+        ),
         amazon_growth_amount=(
             closing.amazon_value
             + closing.amazon_withdrawal
@@ -135,11 +163,11 @@ def annual_calculation_trace(
         property_appreciation=closing.property_value - opening_property - property_purchase_cost,
         retirement_spending=closing.annual_spending,
         cash_withdrawal=closing.cash_withdrawal,
-        etf_withdrawal=closing.etf_withdrawal,
+        taxable_investment_withdrawal=closing.taxable_investment_withdrawal,
         amazon_withdrawal=closing.amazon_withdrawal,
         unfunded_spending=closing.unfunded_spending,
         closing_cash=closing.cash_balance,
-        closing_etf_value=closing.etf_value,
+        closing_taxable_investment_value=closing.taxable_investment_value,
         closing_amazon_shares=closing.amazon_shares,
         closing_amazon_value=closing.amazon_value,
         closing_pension_value=closing.pension_value,
@@ -152,7 +180,7 @@ def retirement_funding_explanation(year: ProjectionYear) -> str:
     """Describe an existing retirement row's funding sources without recalculation."""
     return (
         f"Your spending target is funded by rental income and {year.withdrawal_amount} "
-        "withdrawn from liquid assets in the order cash, ETFs, then Amazon."
+        "withdrawn from liquid assets in the order cash, taxable investments, then Amazon."
     )
 
 

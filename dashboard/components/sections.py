@@ -65,7 +65,7 @@ def projection_table_rows(timeline: tuple[ProjectionYear, ...]) -> list[dict[str
                 "Net worth": format_eur(year.net_worth),
                 "Liquid assets": format_eur(year.liquid_assets),
                 "Cash": format_eur(year.cash_balance),
-                "ETFs": format_eur(year.etf_value),
+                "Taxable investments": format_eur(year.taxable_investment_value),
                 "Amazon": format_eur(year.amazon_value),
                 "Pensions": format_eur(year.pension_value),
                 "Property": format_eur(year.property_value),
@@ -219,7 +219,8 @@ def render_retirement_funding(year: ProjectionYear) -> None:
                 f"- **{format_eur(year.net_recurring_income)} net recurring income** "
                 f"= **{format_eur(year.withdrawal_amount)} remaining spending to fund**",
                 f"**Cash used {format_eur(year.cash_withdrawal)}** + "
-                f"**ETF units sold {format_eur(year.etf_withdrawal)}** + "
+                "**taxable investments sold "
+                f"{format_eur(year.taxable_investment_withdrawal)}** + "
                 f"**Amazon shares sold {format_eur(year.amazon_withdrawal)}** "
                 f"= **{format_eur(year.withdrawal_amount)} funding from liquid assets**",
             )
@@ -248,7 +249,7 @@ def render_annual_financial_statement(statement: AnnualFinancialStatement, narra
             ("Estimated USC", -funding.estimated_usc),
             ("Estimated PRSI", -funding.estimated_prsi),
             ("Cash used", funding.cash_used),
-            ("ETF units sold", funding.etf_units_sold),
+            ("Taxable investments sold", funding.taxable_investments_sold),
             ("Amazon shares sold", funding.amazon_shares_sold),
             ("Other income", funding.other_income),
             ("Unfunded amount", funding.unfunded_amount),
@@ -261,7 +262,7 @@ def render_annual_financial_statement(statement: AnnualFinancialStatement, narra
                 funding.state_pension,
                 funding.private_pension_income,
                 funding.cash_used,
-                funding.etf_units_sold,
+                funding.taxable_investments_sold,
                 funding.amazon_shares_sold,
                 funding.other_income,
                 funding.unfunded_amount,
@@ -288,7 +289,7 @@ def render_annual_financial_statement(statement: AnnualFinancialStatement, narra
         st.markdown("**Closing assets**")
         for label, value in (
             ("Cash", trace.closing_cash),
-            ("ETFs", trace.closing_etf_value),
+            ("Taxable investments", trace.closing_taxable_investment_value),
             ("Amazon", trace.closing_amazon_value),
             ("Pensions", trace.closing_pension_value),
             ("Property", trace.closing_property_value),
@@ -312,7 +313,9 @@ def render_tax_statement(statement: AnnualTaxStatement) -> None:
         ),
         start=Decimal("0"),
     )
-    liquid_funding = statement.cash_used + statement.etf_units_sold + statement.amazon_shares_sold
+    liquid_funding = (
+        statement.cash_used + statement.taxable_investments_sold + statement.amazon_shares_sold
+    )
     st.markdown("**Gross recurring income**")
     st.caption(f"Rental profit: {format_eur(rental_profit)}")
     for person in statement.people:
@@ -335,8 +338,9 @@ def render_tax_statement(statement: AnnualTaxStatement) -> None:
     )
     st.markdown("**Additional funding**")
     st.caption(
-        f"Cash / ETFs / Amazon / unfunded: {format_eur(statement.cash_used)} / "
-        f"{format_eur(statement.etf_units_sold)} / {format_eur(statement.amazon_shares_sold)} / "
+        f"Cash / taxable investments / Amazon / unfunded: {format_eur(statement.cash_used)} / "
+        f"{format_eur(statement.taxable_investments_sold)} / "
+        f"{format_eur(statement.amazon_shares_sold)} / "
         f"{format_eur(statement.unfunded_amount)}"
     )
     st.markdown(
@@ -350,7 +354,8 @@ def render_tax_statement(statement: AnnualTaxStatement) -> None:
     )
     _render_person_tax_table(statement)
     st.caption(
-        "State Pension is included for Income Tax but excluded from USC. Cash use and ETF or "
+        "State Pension is included for Income Tax but excluded from USC. Cash use and taxable-"
+        "investment or "
         "Amazon sales are excluded from ordinary income tax in this model. PRSI is disabled in "
         "the example baseline."
     )
@@ -574,18 +579,22 @@ def _render_asset_movement_cards(statement: AnnualFinancialStatement) -> None:
             )
         )
     with etfs:
-        st.caption("ETFs")
+        st.caption("Taxable investments")
         st.caption(
             "Opening / growth: "
-            f"{format_eur(trace.opening_etf_value)} / {format_eur(trace.etf_growth_amount)}"
+            f"{format_eur(trace.opening_taxable_investment_value)} / "
+            f"{format_eur(trace.taxable_investment_growth_amount)}"
         )
-        st.caption(f"Units sold: {format_eur(trace.etf_withdrawal)}")
-        st.caption(f"Closing: {format_eur(trace.closing_etf_value)}")
+        st.caption(f"Investments sold: {format_eur(trace.taxable_investment_withdrawal)}")
+        st.caption(f"Closing: {format_eur(trace.closing_taxable_investment_value)}")
         _render_rounding_adjustment(
             display_reconciliation_adjustment(
-                trace.closing_etf_value,
-                (trace.opening_etf_value, trace.etf_growth_amount),
-                (trace.etf_withdrawal,),
+                trace.closing_taxable_investment_value,
+                (
+                    trace.opening_taxable_investment_value,
+                    trace.taxable_investment_growth_amount,
+                ),
+                (trace.taxable_investment_withdrawal,),
             )
         )
     with amazon:
@@ -691,14 +700,16 @@ def render_calculation_trace(trace: AnnualCalculationTrace) -> None:
     with opening:
         st.markdown("**Opening position**")
         st.caption(f"Cash: {format_eur(trace.opening_cash)}")
-        st.caption(f"ETFs: {format_eur(trace.opening_etf_value)}")
+        st.caption(f"Taxable investments: {format_eur(trace.opening_taxable_investment_value)}")
         st.caption(f"Amazon: {format_eur(trace.opening_amazon_value)}")
         st.caption(f"Pensions: {format_eur(trace.opening_pension_value)}")
         st.caption(f"Property: {format_eur(trace.opening_property_value)}")
     with inflows:
         st.markdown("**Inflows and growth**")
         st.caption(f"Savings: {format_eur(trace.annual_savings)}")
-        st.caption(f"ETF growth: {format_eur(trace.etf_growth_amount)}")
+        st.caption(
+            f"Taxable-investment growth: {format_eur(trace.taxable_investment_growth_amount)}"
+        )
         st.caption(f"Amazon growth: {format_eur(trace.amazon_growth_amount)}")
         st.caption(f"RSUs vested: {trace.rsu_shares_vested:,.0f} shares")
         st.caption(f"RSU sale proceeds: {format_eur(trace.rsu_sale_proceeds)}")
@@ -714,15 +725,16 @@ def render_calculation_trace(trace: AnnualCalculationTrace) -> None:
         st.caption(f"Property purchase: {format_eur(trace.property_purchase_cost)}")
         st.caption(f"Retirement spending: {format_eur(trace.retirement_spending)}")
         st.caption(
-            "Cash / ETF / Amazon withdrawals: "
-            f"{format_eur(trace.cash_withdrawal)} / {format_eur(trace.etf_withdrawal)} / "
+            "Cash / taxable-investment / Amazon withdrawals: "
+            f"{format_eur(trace.cash_withdrawal)} / "
+            f"{format_eur(trace.taxable_investment_withdrawal)} / "
             f"{format_eur(trace.amazon_withdrawal)}"
         )
         st.caption(f"Unfunded spending: {format_eur(trace.unfunded_spending)}")
     with closing:
         st.markdown("**Closing position**")
         st.caption(f"Cash: {format_eur(trace.closing_cash)}")
-        st.caption(f"ETFs: {format_eur(trace.closing_etf_value)}")
+        st.caption(f"Taxable investments: {format_eur(trace.closing_taxable_investment_value)}")
         st.caption(f"Amazon: {format_eur(trace.closing_amazon_value)}")
         st.caption(f"Pensions: {format_eur(trace.closing_pension_value)}")
         st.caption(f"Property: {format_eur(trace.closing_property_value)}")
@@ -738,12 +750,17 @@ def render_assumptions_used(configuration: WealthOsConfig) -> None:
             f"{format_percentage(configuration.assumptions.inflation_rate)}."
         )
         st.caption(
-            f"ETF growth {format_percentage(configuration.investments.etf_growth_rate)}; Amazon "
+            "Taxable-investment growth "
+            f"{format_percentage(configuration.investments.taxable_investment_growth_rate)}; "
+            "Amazon "
             f"growth {format_percentage(configuration.amazon_rsus.annual_growth_rate)}; EUR/USD "
             f"{configuration.amazon_rsus.eur_usd_exchange_rate}; sell on vest: "
             f"{'Yes' if configuration.amazon_rsus.sell_on_vest else 'No'}."
         )
-        st.caption("ETF growth is applied once per year using a constant deterministic rate.")
+        st.caption(
+            "Taxable-investment growth is applied once per year using one constant "
+            "deterministic rate. This does not assert identical expected returns by asset type."
+        )
         st.caption("Amazon growth affects the projected USD share price before conversion to EUR.")
         st.caption(
             "Rental income increases annually with inflation. Pension drawdown follows the "
@@ -757,8 +774,10 @@ def render_formula_glossary() -> None:
     st.markdown(
         "\n".join(
             (
-                "- **Net worth** = cash + ETFs + Amazon + pensions + rental property.",
-                "- **Liquid assets** = cash + ETFs + Amazon; pensions and property are excluded.",
+                "- **Net worth** = cash + taxable investments + Amazon + pensions + rental "
+                "property.",
+                "- **Liquid assets** = cash + taxable investments + Amazon; pensions and "
+                "property are excluded.",
                 "- **Gross recurring income** = rental profit + private pension income + "
                 "State Pension.",
                 "- **Estimated tax** = Income Tax + USC + PRSI.",
@@ -772,8 +791,8 @@ def render_formula_glossary() -> None:
                 "- **Retirement ready** = every retirement year is funded by rental income and "
                 "liquid assets.",
                 "- **Inflation-adjusted spending** = target spending grown annually by inflation.",
-                "- **ETF / pension annual growth** = prior balance x (1 + configured annual "
-                "growth rate).",
+                "- **Taxable-investment / pension annual growth** = prior balance x "
+                "(1 + configured annual growth rate).",
             )
         )
     )

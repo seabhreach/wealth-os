@@ -57,7 +57,7 @@ def apply_rental_properties(
         property_value = sum(property_values, start=ZERO)
         net_worth = (
             cash_balance
-            + projection_year.etf_value
+            + projection_year.taxable_investment_value
             + projection_year.amazon_value
             + projection_year.pension_value
             + property_value
@@ -65,7 +65,9 @@ def apply_rental_properties(
         amazon_concentration = position_concentration(
             projection_year.amazon_value,
             investable_assets(
-                cash_balance, projection_year.etf_value, projection_year.amazon_value
+                cash_balance,
+                projection_year.taxable_investment_value,
+                projection_year.amazon_value,
             ),
         )
         updated_timeline.append(

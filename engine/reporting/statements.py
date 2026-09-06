@@ -22,11 +22,16 @@ class AnnualFundingStatement:
     estimated_prsi: Decimal
     tax_modelling_enabled: bool
     cash_used: Decimal
-    etf_units_sold: Decimal
+    taxable_investments_sold: Decimal
     amazon_shares_sold: Decimal
     other_income: Decimal
     unfunded_amount: Decimal
     retirement_spending: Decimal
+
+    @property
+    def etf_units_sold(self) -> Decimal:
+        """Return taxable-investment sales for legacy reporting callers."""
+        return self.taxable_investments_sold
 
     @property
     def total_funding(self) -> Decimal:
@@ -40,7 +45,7 @@ class AnnualFundingStatement:
                 -self.estimated_usc,
                 -self.estimated_prsi,
                 self.cash_used,
-                self.etf_units_sold,
+                self.taxable_investments_sold,
                 self.amazon_shares_sold,
                 self.other_income,
                 self.unfunded_amount,
@@ -93,7 +98,7 @@ def annual_financial_statement(
         estimated_prsi=year.estimated_prsi,
         tax_modelling_enabled=year.tax_modelling_enabled,
         cash_used=year.cash_withdrawal,
-        etf_units_sold=year.etf_withdrawal,
+        taxable_investments_sold=year.taxable_investment_withdrawal,
         amazon_shares_sold=year.amazon_withdrawal,
         other_income=ZERO,
         unfunded_amount=year.unfunded_spending,
@@ -131,8 +136,8 @@ def retirement_funding_narrative(statement: AnnualFinancialStatement) -> str:
         sources.append("rental income")
     if funding.cash_used:
         sources.append("cash reserves")
-    if funding.etf_units_sold:
-        sources.append("ETF sales")
+    if funding.taxable_investments_sold:
+        sources.append("taxable-investment sales")
     if funding.amazon_shares_sold:
         sources.append("Amazon share sales")
     if funding.unfunded_amount:

@@ -109,6 +109,79 @@ def test_changed_pension_contribution_submits_without_a_navigation_exception() -
     assert PENDING_PAGE_KEY not in app.session_state
 
 
+def test_repeatable_investment_editor_preserves_current_edits_through_collection_actions() -> None:
+    """Add and remove submissions retain sibling values by stable holding identity."""
+    app_path = Path(__file__).resolve().parents[1] / "dashboard" / "app.py"
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+    app.radio[0].set_value("Inputs").run(timeout=30)
+
+    next(
+        field for field in app.number_input if field.key == "investment_value_existing-etf"
+    ).set_value(310_000.0)
+    next(button for button in app.button if button.label == "Add investment").click().run(
+        timeout=30
+    )
+    first_added_name = next(
+        field
+        for field in app.text_input
+        if str(field.key).startswith("investment_name_investment-")
+    )
+    first_added_id = str(first_added_name.key).removeprefix("investment_name_")
+
+    first_added_name.set_value("Individual shares")
+    next(
+        field for field in app.selectbox if field.key == f"investment_type_{first_added_id}"
+    ).set_value("Individual shares")
+    next(
+        field for field in app.number_input if field.key == f"investment_value_{first_added_id}"
+    ).set_value(20_000.0)
+    next(button for button in app.button if button.label == "Add investment").click().run(
+        timeout=30
+    )
+    second_added_name = next(
+        field
+        for field in app.text_input
+        if str(field.key).startswith("investment_name_investment-")
+        and field.key != f"investment_name_{first_added_id}"
+    )
+    second_added_id = str(second_added_name.key).removeprefix("investment_name_")
+
+    second_added_name.set_value("Crypto holding")
+    next(
+        field for field in app.selectbox if field.key == f"investment_type_{second_added_id}"
+    ).set_value("Cryptoassets")
+    next(
+        field for field in app.number_input if field.key == f"investment_value_{second_added_id}"
+    ).set_value(5_000.0)
+    next(
+        field for field in app.number_input if field.key == f"investment_value_{first_added_id}"
+    ).set_value(25_000.0)
+    next(
+        button for button in app.button if button.key == f"remove_investment_{second_added_id}"
+    ).click().run(timeout=30)
+
+    next(button for button in app.button if button.label == "Run projection").click().run(
+        timeout=30
+    )
+
+    assert not app.exception
+    configuration = app.session_state["wealth_os_configuration"]
+    assert isinstance(configuration, WealthOsConfig)
+    assert [holding.holding_id for holding in configuration.investments.holdings] == [
+        "existing-etf",
+        first_added_id,
+    ]
+    assert [holding.name for holding in configuration.investments.holdings] == [
+        "Existing ETF holding",
+        "Individual shares",
+    ]
+    assert [holding.current_value for holding in configuration.investments.holdings] == [
+        310_000,
+        25_000,
+    ]
+    assert configuration.investments.holdings[1].asset_type.value == "INDIVIDUAL_EQUITY"
+
+
 def _configuration() -> WealthOsConfig:
     """Return the repository's validated baseline household configuration."""
     contents = Path("data/example_household.yaml").read_text(encoding="utf-8")

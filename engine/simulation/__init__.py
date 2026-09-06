@@ -7,6 +7,7 @@ from engine.simulation.pensions import PensionBalance, apply_pension_growth
 from engine.simulation.projection import ProjectionYear, project_annually
 from engine.simulation.properties import PropertySimulationError, apply_rental_properties
 from engine.simulation.retirement import apply_retirement_withdrawals
+from engine.simulation.taxable_investments import apply_cash_and_taxable_investment_growth
 
 __all__ = [
     "EmptySimulationResult",
@@ -15,6 +16,7 @@ __all__ = [
     "PropertySimulationError",
     "apply_amazon_rsus",
     "apply_cash_and_etf_growth",
+    "apply_cash_and_taxable_investment_growth",
     "apply_pension_growth",
     "apply_rental_properties",
     "apply_retirement_withdrawals",

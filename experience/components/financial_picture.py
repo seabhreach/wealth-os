@@ -28,8 +28,9 @@ SECTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Income & saving", ("employment_salary", "annual_savings")),
     (
         "Available planning assets",
-        ("cash", "investments", "employer_equity", "equity_policy"),
+        ("cash", "employer_equity", "equity_policy"),
     ),
+    ("Investments", ("investment:",)),
     ("Retirement assets", ("pension:",)),
     ("Investment property", ("property:",)),
     ("Primary residence", ("primary_residence:",)),

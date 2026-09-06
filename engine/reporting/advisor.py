@@ -20,7 +20,7 @@ class ScenarioOverride:
     sell_on_vest: bool | None = None
     include_planned_rental_properties: bool | None = None
     target_retirement_spending: Decimal | None = None
-    etf_growth_rate: Decimal | None = None
+    taxable_investment_growth_rate: Decimal | None = None
     amazon_growth_rate: Decimal | None = None
     inflation_rate: Decimal | None = None
 
@@ -158,9 +158,9 @@ def apply_override(configuration: WealthOsConfig, override: ScenarioOverride) ->
     )
     investments = configuration.investments.model_copy(
         update={
-            "etf_growth_rate": override.etf_growth_rate
-            if override.etf_growth_rate is not None
-            else configuration.investments.etf_growth_rate
+            "taxable_investment_growth_rate": override.taxable_investment_growth_rate
+            if override.taxable_investment_growth_rate is not None
+            else configuration.investments.taxable_investment_growth_rate
         }
     )
     amazon = configuration.amazon_rsus.model_copy(
@@ -270,7 +270,12 @@ def sensitivity_analysis(configuration: WealthOsConfig) -> tuple[SensitivityResu
     """Run small fixed one-variable deterministic sensitivity ranges around the baseline."""
     baseline = configuration.assumptions
     values = (
-        ("ETF growth", "ETF growth", configuration.investments.etf_growth_rate, Decimal("0.02")),
+        (
+            "Taxable investment growth",
+            "Taxable investment growth",
+            configuration.investments.taxable_investment_growth_rate,
+            Decimal("0.02"),
+        ),
         (
             "Amazon growth",
             "Amazon growth",
@@ -299,8 +304,8 @@ def sensitivity_analysis(configuration: WealthOsConfig) -> tuple[SensitivityResu
 
 def _sensitivity_override(variable: str, value: Decimal) -> ScenarioOverride:
     """Create the permitted override corresponding to one sensitivity variable."""
-    if variable == "ETF growth":
-        return ScenarioOverride(etf_growth_rate=value)
+    if variable == "Taxable investment growth":
+        return ScenarioOverride(taxable_investment_growth_rate=value)
     if variable == "Amazon growth":
         return ScenarioOverride(amazon_growth_rate=value)
     return ScenarioOverride(inflation_rate=value)

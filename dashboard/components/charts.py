@@ -9,7 +9,7 @@ from engine.simulation.projection import ProjectionYear
 
 ASSET_SERIES = (
     ("Cash", "cash_balance", "#64748B"),
-    ("ETFs", "etf_value", "#2563EB"),
+    ("Taxable investments", "taxable_investment_value", "#2563EB"),
     ("Amazon", "amazon_value", "#C2410C"),
     ("Pensions", "pension_value", "#0F766E"),
     ("Rental property", "property_value", "#7C3AED"),
@@ -27,7 +27,7 @@ def asset_balance_rows(timeline: Iterable[ProjectionYear]) -> list[dict[str, flo
             "calendar_year": year.calendar_year,
             "age": year.age,
             "cash_balance": float(year.cash_balance),
-            "etf_value": float(year.etf_value),
+            "taxable_investment_value": float(year.taxable_investment_value),
             "amazon_value": float(year.amazon_value),
             "pension_value": float(year.pension_value),
             "property_value": float(year.property_value),
@@ -72,7 +72,9 @@ def net_worth_figure(timeline: tuple[ProjectionYear, ...], retirement_year: int)
 
 def liquid_assets_figure(timeline: tuple[ProjectionYear, ...], retirement_year: int) -> go.Figure:
     """Build a liquid-asset composition chart."""
-    figure = _financial_figure("Liquid assets", "Cash, ETFs, Amazon, and total liquid assets")
+    figure = _financial_figure(
+        "Liquid assets", "Cash, taxable investments, Amazon, and total liquid assets"
+    )
     years = [year.calendar_year for year in timeline]
     for label, attribute, colour in LIQUID_SERIES:
         figure.add_trace(
@@ -268,7 +270,11 @@ def spending_funding_figure(timeline: tuple[ProjectionYear, ...]) -> go.Figure:
         ("State Pension", [0 for _ in retirement_years], "#475569"),
         ("Private pension income", [0 for _ in retirement_years], "#0F766E"),
         ("Cash used", [year.cash_withdrawal for year in retirement_years], "#64748B"),
-        ("ETF units sold", [year.etf_withdrawal for year in retirement_years], "#2563EB"),
+        (
+            "Taxable investments sold",
+            [year.taxable_investment_withdrawal for year in retirement_years],
+            "#2563EB",
+        ),
         ("Amazon shares sold", [year.amazon_withdrawal for year in retirement_years], "#C2410C"),
         ("Unfunded spending", [year.unfunded_spending for year in retirement_years], DANGER),
     ):
@@ -301,7 +307,11 @@ def selected_funding_figure(statement: AnnualFinancialStatement) -> go.Figure:
             "#DC2626",
         ),
         ("Cash used", funding.cash_used, "#64748B"),
-        ("ETF units sold", funding.etf_units_sold, "#2563EB"),
+        (
+            "Taxable investments sold",
+            funding.taxable_investments_sold,
+            "#2563EB",
+        ),
         ("Amazon shares sold", funding.amazon_shares_sold, "#C2410C"),
         ("Unfunded amount", funding.unfunded_amount, DANGER),
     ):

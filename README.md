@@ -30,9 +30,10 @@ different single household.
 - All balances, spending, pensions, properties, and withdrawal results are reported in EUR.
 - Amazon share prices are configured in USD and converted using a static EUR-per-USD exchange
   rate before values, sale proceeds, withdrawals, concentration, and net worth are calculated.
-- Annual savings are added to cash before retirement; ETFs grow at the configured rate.
-- Rental income is added to cash. When tax modelling is enabled, annual net rent is allocated to
-  explicit beneficial ownership shares for estimated personal tax only.
+- Annual savings are added to cash before retirement. Ordinary taxable investments are canonical
+  named holdings and currently share one configured deterministic growth rate.
+- Rental income is recognised once as recurring income. When tax modelling is enabled, annual net
+  rent is allocated to explicit beneficial ownership shares for estimated personal tax.
 - Pensions grow, may receive owner-specific contributions, and can draw down only after each
   owner's configured access age. State Pension follows each owner's configured start age.
 - Retirement spending is a net household target in start-year EUR and grows with inflation.
@@ -43,7 +44,8 @@ different single household.
 
 During retirement, rent, permitted pension drawdown, and State Pension create recurring income.
 When tax is enabled, estimated tax is deducted before the net recurring income is applied to
-spending. Any remaining gap is funded in this order: cash, ETFs, then retained Amazon shares.
+spending. Any remaining gap is funded in this order: cash, taxable investments, then retained
+Amazon shares.
 Properties are not sold. If permitted liquid assets are exhausted, Wealth OS records unfunded
 spending rather than making balances negative.
 
@@ -64,7 +66,7 @@ baseline and does not make recommendations.
 
 ## What this MVP does not yet model
 
-- CGT and ETF deemed disposal
+- Asset-specific investment tax, including CGT and ETF/fund deemed disposal
 - Residential Premises Rental Income Relief and filing-level relief claims
 - Pension lump-sum tax treatment
 - Property transaction costs

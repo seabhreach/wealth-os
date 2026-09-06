@@ -55,7 +55,11 @@ def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
         _item("employment_salary", "Annual employment income", configuration.employment.salary),
         _item("annual_savings", "Annual saving", configuration.employment.annual_savings),
         _item("cash", "Cash", configuration.investments.cash_balance),
-        _item("investments", "ETF investments", configuration.investments.etf_value),
+        _item(
+            "investments",
+            "Taxable investments",
+            configuration.investments.taxable_investment_value,
+        ),
         _item(
             "employer_equity",
             "Employer-equity shares",
@@ -69,6 +73,26 @@ def _adapt_picture(configuration: WealthOsConfig) -> FinancialPicture:
         _item("inflation", "Inflation assumption", configuration.assumptions.inflation_rate),
         _item("tax", "Tax modelling", configuration.tax.enabled),
     ]
+    for holding in configuration.investments.holdings:
+        items.extend(
+            (
+                _item(
+                    f"investment:{holding.holding_id}:name",
+                    "Holding name",
+                    holding.name,
+                ),
+                _item(
+                    f"investment:{holding.holding_id}:type",
+                    "Investment type",
+                    holding.asset_type.customer_label,
+                ),
+                _item(
+                    f"investment:{holding.holding_id}:value",
+                    "Current value",
+                    holding.current_value,
+                ),
+            )
+        )
     for pension in configuration.pensions:
         items.append(_item(f"pension:{pension.name}", pension.name, pension.current_value))
     for property_config in configuration.rental_properties:

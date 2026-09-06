@@ -51,7 +51,8 @@ def apply_amazon_rsus(
             + cumulative_sale_proceeds
         )
         amazon_concentration = position_concentration(
-            amazon_value, investable_assets(cash_balance, projection_year.etf_value, amazon_value)
+            amazon_value,
+            investable_assets(cash_balance, projection_year.taxable_investment_value, amazon_value),
         )
         updated_years.append(
             replace(

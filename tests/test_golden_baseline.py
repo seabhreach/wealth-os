@@ -81,7 +81,10 @@ def test_baseline_edge_case_regressions() -> None:
 
     zero_growth = (
         _example_yaml()
-        .replace("etf_growth_rate: 0.06", "etf_growth_rate: 0")
+        .replace(
+            "taxable_investment_growth_rate: 0.06",
+            "taxable_investment_growth_rate: 0",
+        )
         .replace("annual_growth_rate: 0.05", "annual_growth_rate: 0", 1)
         .replace("annual_grant_shares: 800", "annual_grant_shares: 0")
         .replace("inflation_rate: 0.02", "inflation_rate: 0")
@@ -93,7 +96,7 @@ def test_baseline_edge_case_regressions() -> None:
 
     insufficient_assets = (
         zero_properties.replace("cash_balance: 500000", "cash_balance: 0")
-        .replace("etf_value: 300000", "etf_value: 0")
+        .replace("current_value: 300000", "current_value: 0", 1)
         .replace("vested_shares: 310", "vested_shares: 0")
         .replace("annual_grant_shares: 800", "annual_grant_shares: 0")
         .replace("target_retirement_income: 80000", "target_retirement_income: 1000000")

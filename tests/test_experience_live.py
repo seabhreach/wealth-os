@@ -126,6 +126,17 @@ def test_financial_picture_exposes_inactive_primary_residence_separately() -> No
     assert "not assumed available" in str(items["primary_residence:planning_status"])
 
 
+def test_financial_picture_exposes_canonical_investment_holding_details() -> None:
+    """Ordinary investments are visible by identity, type, and current value."""
+    picture = _service().baseline.financial_picture
+    items = {item.key: item.value for item in picture.items}
+
+    assert items["investments"] == Decimal("300000")
+    assert items["investment:existing-etf:name"] == "Existing ETF holding"
+    assert items["investment:existing-etf:type"] == "ETF"
+    assert items["investment:existing-etf:value"] == Decimal("300000")
+
+
 def test_retirement_age_workspace_matches_existing_scenario_result() -> None:
     service = _service()
     workspace = service.retire_earlier(58)

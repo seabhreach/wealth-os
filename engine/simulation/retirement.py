@@ -33,7 +33,7 @@ class WithdrawalBreakdown:
     """The amounts withdrawn from each permitted retirement asset class."""
 
     cash: Decimal
-    etf: Decimal
+    taxable_investments: Decimal
     amazon: Decimal
 
 
@@ -46,7 +46,7 @@ def apply_retirement_withdrawals(
 ) -> tuple[ProjectionYear, ...]:
     """Return a new timeline after inflation-adjusted retirement spending and withdrawals.
 
-    Cash, ETF holdings, then retained Amazon shares cover the spending gap in that order.
+    Cash, taxable investments, then retained Amazon shares cover the spending gap in that order.
     Rental income already in cash reduces the gap and is never added a second time.
     """
     cash_adjustment = ZERO
@@ -60,9 +60,9 @@ def apply_retirement_withdrawals(
     for index, projection_year in enumerate(timeline):
         cash_before_withdrawal = projection_year.cash_balance + cash_adjustment
         etf_before_withdrawal = (
-            projection_year.etf_value
+            projection_year.taxable_investment_value
             if index == 0
-            else previous_etf_value * (ONE + config.investments.etf_growth_rate)
+            else previous_etf_value * (ONE + config.investments.taxable_investment_growth_rate)
         )
         actual_amazon_shares = _amazon_shares_before_withdrawal(
             index=index,
@@ -107,17 +107,17 @@ def apply_retirement_withdrawals(
         withdrawals = _withdraw_in_order(
             spending_gap=spending_gap,
             cash_balance=cash_before_withdrawal,
-            etf_value=etf_before_withdrawal,
+            taxable_investment_value=etf_before_withdrawal,
             amazon_shares=actual_amazon_shares,
             amazon_share_price=amazon_share_price,
         )
 
         cash_balance = cash_before_withdrawal + after_tax_surplus - withdrawals.cash
-        etf_value = etf_before_withdrawal - withdrawals.etf
+        etf_value = etf_before_withdrawal - withdrawals.taxable_investments
         if amazon_share_price != ZERO:
             actual_amazon_shares -= withdrawals.amazon / amazon_share_price
         amazon_value = actual_amazon_shares * amazon_share_price
-        withdrawal_amount = withdrawals.cash + withdrawals.etf + withdrawals.amazon
+        withdrawal_amount = withdrawals.cash + withdrawals.taxable_investments + withdrawals.amazon
         unfunded_spending = spending_gap - withdrawal_amount
         liquid_assets = cash_balance + etf_value + amazon_value
         pension_value = sum((balance.value for balance in pension_balances), start=ZERO)
@@ -153,13 +153,13 @@ def apply_retirement_withdrawals(
                 pension_accessible=pension_income_available > ZERO,
                 pension_income_available=pension_income_available,
                 cash_balance=cash_balance,
-                etf_value=etf_value,
+                taxable_investment_value=etf_value,
                 amazon_shares=actual_amazon_shares,
                 amazon_value=amazon_value,
                 amazon_concentration=amazon_concentration,
                 withdrawal_amount=withdrawal_amount,
                 cash_withdrawal=withdrawals.cash,
-                etf_withdrawal=withdrawals.etf,
+                taxable_investment_withdrawal=withdrawals.taxable_investments,
                 amazon_withdrawal=withdrawals.amazon,
                 unfunded_spending=unfunded_spending,
                 retirement_target_met=unfunded_spending == ZERO,
@@ -460,19 +460,19 @@ def _withdraw_in_order(
     *,
     spending_gap: Decimal,
     cash_balance: Decimal,
-    etf_value: Decimal,
+    taxable_investment_value: Decimal,
     amazon_shares: Decimal,
     amazon_share_price: Decimal,
 ) -> WithdrawalBreakdown:
-    """Fund as much of the gap as possible from cash, ETF, then Amazon shares."""
+    """Fund as much of the gap as possible from cash, investments, then Amazon shares."""
     cash_withdrawal = min(cash_balance, spending_gap)
     remaining_gap = spending_gap - cash_withdrawal
-    etf_withdrawal = min(etf_value, remaining_gap)
-    remaining_gap -= etf_withdrawal
+    taxable_investment_withdrawal = min(taxable_investment_value, remaining_gap)
+    remaining_gap -= taxable_investment_withdrawal
     amazon_value = amazon_shares * amazon_share_price
     amazon_withdrawal = min(amazon_value, remaining_gap)
     return WithdrawalBreakdown(
         cash=cash_withdrawal,
-        etf=etf_withdrawal,
+        taxable_investments=taxable_investment_withdrawal,
         amazon=amazon_withdrawal,
     )

@@ -46,10 +46,10 @@ joint lower-earner band and her individual USC threshold/bands.
 | Cumulative net rental contribution | EUR 774,045.17 | EUR 0 | EUR 774,045.17 |
 | Total retirement withdrawals | EUR 1,547,045.60 | EUR 2,266,136.11 | EUR -719,090.51 |
 | Cash withdrawals | EUR 1,547,045.60 | EUR 1,971,676.11 | EUR -424,630.51 |
-| ETF sales | EUR 0 | EUR 294,460.00 | EUR -294,460.00 |
+| Taxable-investment sales | EUR 0 | EUR 294,460.00 | EUR -294,460.00 |
 | Employer-equity sales for spending | EUR 0 | EUR 0 | EUR 0 |
 | Final cash | EUR 279,585.18 | EUR 0 | EUR 279,585.18 |
-| Final ETFs | EUR 3,467,109.80 | EUR 3,150,568.87 | EUR 316,540.93 |
+| Final taxable investments | EUR 3,467,109.80 | EUR 3,150,568.87 | EUR 316,540.93 |
 | Final employer equity | EUR 597,673.29 | EUR 597,673.29 | EUR 0 |
 | Final liquid assets | EUR 4,344,368.27 | EUR 3,748,242.16 | EUR 596,126.11 |
 | Final pensions | EUR 833,876.05 | EUR 833,876.05 | EUR 0 |
@@ -62,7 +62,7 @@ The corrected liquid-assets bridge is:
 EUR -200,000.00 purchase capital
 + EUR 54,954.66 pre-retirement after-tax rental surplus
 + EUR 719,090.51 retirement liquid withdrawals avoided
-+ EUR 22,080.93 ETF timing/compounding interaction
++ EUR 22,080.93 taxable-investment timing/compounding interaction
 = EUR 596,126.11 final liquid-assets difference
 ```
 
@@ -102,7 +102,7 @@ and residence equity remain distinct.
 Employer-equity concentration now uses the explicit investable-assets denominator:
 
 ```text
-cash + taxable ETF investments + employer/direct equity
+cash + taxable investments + employer/direct equity
 ```
 
 Pensions, investment property and primary residence are excluded. ETFs belong in the denominator

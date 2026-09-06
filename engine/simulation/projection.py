@@ -5,11 +5,11 @@ from decimal import Decimal
 
 from engine.config.models import WealthOsConfig
 from engine.simulation.amazon import apply_amazon_rsus
-from engine.simulation.cash_etf import apply_cash_and_etf_growth
 from engine.simulation.investable import investable_assets, position_concentration
 from engine.simulation.pensions import PensionBalance, apply_pension_growth
 from engine.simulation.properties import apply_rental_properties
 from engine.simulation.retirement import apply_retirement_withdrawals
+from engine.simulation.taxable_investments import apply_cash_and_taxable_investment_growth
 from engine.tax.models import HouseholdTaxResult
 
 ZERO = Decimal("0")
@@ -26,7 +26,7 @@ class ProjectionYear:
     salary: Decimal
     annual_savings: Decimal
     cash_balance: Decimal
-    etf_value: Decimal
+    taxable_investment_value: Decimal
     amazon_shares: Decimal
     amazon_value: Decimal
     amazon_concentration: Decimal
@@ -58,12 +58,22 @@ class ProjectionYear:
     annual_spending: Decimal
     withdrawal_amount: Decimal
     cash_withdrawal: Decimal
-    etf_withdrawal: Decimal
+    taxable_investment_withdrawal: Decimal
     amazon_withdrawal: Decimal
     unfunded_spending: Decimal
     retirement_target_met: bool
     liquid_assets: Decimal
     net_worth: Decimal
+
+    @property
+    def etf_value(self) -> Decimal:
+        """Return the taxable-investment balance for legacy reporting callers."""
+        return self.taxable_investment_value
+
+    @property
+    def etf_withdrawal(self) -> Decimal:
+        """Return taxable-investment sales for legacy reporting callers."""
+        return self.taxable_investment_withdrawal
 
     def as_table_row(self) -> dict[str, int | bool | Decimal | str]:
         """Return a table-compatible representation for the dashboard."""
@@ -74,7 +84,7 @@ class ProjectionYear:
             "salary": self.salary,
             "annual_savings": self.annual_savings,
             "cash_balance": self.cash_balance,
-            "etf_value": self.etf_value,
+            "taxable_investment_value": self.taxable_investment_value,
             "amazon_shares": self.amazon_shares,
             "amazon_value": self.amazon_value,
             "amazon_concentration": self.amazon_concentration,
@@ -96,7 +106,7 @@ class ProjectionYear:
             "annual_spending": self.annual_spending,
             "withdrawal_amount": self.withdrawal_amount,
             "cash_withdrawal": self.cash_withdrawal,
-            "etf_withdrawal": self.etf_withdrawal,
+            "taxable_investment_withdrawal": self.taxable_investment_withdrawal,
             "amazon_withdrawal": self.amazon_withdrawal,
             "unfunded_spending": self.unfunded_spending,
             "retirement_target_met": self.retirement_target_met,
@@ -106,7 +116,7 @@ class ProjectionYear:
 
 
 def project_annually(configuration: WealthOsConfig) -> tuple[ProjectionYear, ...]:
-    """Create annual projection rows through life expectancy with cash and ETF growth."""
+    """Create annual projection rows through life expectancy."""
     household = configuration.household
     assumptions = configuration.assumptions
     investments = configuration.investments
@@ -127,7 +137,7 @@ def project_annually(configuration: WealthOsConfig) -> tuple[ProjectionYear, ...
     )
     net_worth = (
         investments.cash_balance
-        + investments.etf_value
+        + investments.taxable_investment_value
         + amazon_value
         + pension_value
         + property_value
@@ -139,7 +149,7 @@ def project_annually(configuration: WealthOsConfig) -> tuple[ProjectionYear, ...
             calendar_year=assumptions.start_year + year_offset,
             age=household.current_age + year_offset,
             cash_balance=investments.cash_balance,
-            etf_value=investments.etf_value,
+            taxable_investment_value=investments.taxable_investment_value,
             amazon_value=amazon_value,
             pension_value=pension_value,
             property_value=property_value,
@@ -149,8 +159,10 @@ def project_annually(configuration: WealthOsConfig) -> tuple[ProjectionYear, ...
         )
         for year_offset in range(household.life_expectancy - household.current_age + 1)
     ]
-    cash_and_etf_projection = apply_cash_and_etf_growth(timeline, configuration)
-    amazon_projection = apply_amazon_rsus(tuple(cash_and_etf_projection), configuration)
+    cash_and_investment_projection = apply_cash_and_taxable_investment_growth(
+        timeline, configuration
+    )
+    amazon_projection = apply_amazon_rsus(tuple(cash_and_investment_projection), configuration)
     property_projection = apply_rental_properties(amazon_projection, configuration)
     pension_projection = apply_pension_growth(property_projection, configuration)
     return apply_retirement_withdrawals(pension_projection, configuration)
@@ -162,7 +174,7 @@ def _build_projection_year(
     calendar_year: int,
     age: int,
     cash_balance: Decimal,
-    etf_value: Decimal,
+    taxable_investment_value: Decimal,
     amazon_value: Decimal,
     pension_value: Decimal,
     property_value: Decimal,
@@ -175,7 +187,8 @@ def _build_projection_year(
     salary = configuration.employment.salary if employed else ZERO
     annual_savings = configuration.employment.annual_savings if employed else ZERO
     amazon_concentration = position_concentration(
-        amazon_value, investable_assets(cash_balance, etf_value, amazon_value)
+        amazon_value,
+        investable_assets(cash_balance, taxable_investment_value, amazon_value),
     )
 
     return ProjectionYear(
@@ -185,7 +198,7 @@ def _build_projection_year(
         salary=salary,
         annual_savings=annual_savings,
         cash_balance=cash_balance,
-        etf_value=etf_value,
+        taxable_investment_value=taxable_investment_value,
         amazon_shares=configuration.amazon_rsus.vested_shares,
         amazon_value=amazon_value,
         amazon_concentration=amazon_concentration,
@@ -217,10 +230,10 @@ def _build_projection_year(
         annual_spending=ZERO,
         withdrawal_amount=ZERO,
         cash_withdrawal=ZERO,
-        etf_withdrawal=ZERO,
+        taxable_investment_withdrawal=ZERO,
         amazon_withdrawal=ZERO,
         unfunded_spending=ZERO,
         retirement_target_met=True,
-        liquid_assets=cash_balance + etf_value + amazon_value,
+        liquid_assets=cash_balance + taxable_investment_value + amazon_value,
         net_worth=net_worth,
     )
