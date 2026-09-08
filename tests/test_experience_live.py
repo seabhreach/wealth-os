@@ -19,6 +19,7 @@ from experience.live.models import (
     LimitationEvidence,
     MetricEvidence,
     NarrativeEvidence,
+    TableEvidence,
     TimelineEvidence,
 )
 from experience.live.provenance import provenance_identity, stable_fingerprint
@@ -312,6 +313,35 @@ def test_employer_equity_uses_supported_disposal_policy_metrics() -> None:
     assert concentration.scenario_value > concentration.baseline_value
 
 
+def test_employer_equity_exposes_concentration_denominator_and_protected_outcome() -> None:
+    workspace = _service().employer_equity()
+    evidence = {item.evidence_id: item for item in workspace.evidence}
+    concentration = _comparison(workspace.evidence, "g003-concentration")
+    denominator = evidence["g003-denominator"]
+
+    assert concentration.baseline_value == Decimal("0.1375742688860239128304175150")
+    assert concentration.scenario_value == Decimal("0.8795543048907487566337885495")
+    assert isinstance(denominator, AssumptionEvidence)
+    assert denominator.value == "Cash + taxable investments + employer equity"
+    assert denominator.source == "RFC-010 investable-assets definition"
+    assert _comparison(workspace.evidence, "g003-final-worth").scenario_value == Decimal(
+        "12687376.37280836126030839548"
+    )
+
+
+def test_employer_equity_evidence_separates_concentration_from_wealth() -> None:
+    workspace = _service().employer_equity()
+    concentration = _comparison(workspace.evidence, "g003-concentration")
+    final_worth = _comparison(workspace.evidence, "g003-final-worth")
+    growth = next(item for item in workspace.evidence if item.evidence_id == "g003-growth")
+
+    assert concentration.purpose is EvidencePurpose.TRADE_OFF
+    assert final_worth.purpose is EvidencePurpose.COMPARISON
+    assert isinstance(growth, AssumptionEvidence)
+    assert concentration.evidence_id in workspace.evidence[0].citations  # type: ignore[union-attr]
+    assert final_worth.evidence_id in workspace.evidence[0].citations  # type: ignore[union-attr]
+
+
 def test_employer_equity_selected_policy_refreshes_evidence_without_mutating_baseline() -> None:
     service = _service()
     before = service.baseline.configuration.model_dump_json()
@@ -381,6 +411,42 @@ def test_spending_input_is_today_money_and_first_retirement_value_is_nominal() -
     assert scenario.metrics.first_retirement_spending == target * Decimal("1.02") ** 6
 
 
+def test_higher_spending_exposes_trajectory_funding_and_protected_outcome() -> None:
+    workspace = _service().higher_spending(Decimal("100000"))
+    evidence = {item.evidence_id: item for item in workspace.evidence}
+    baseline = evidence["g004-liquid-baseline-series"]
+    explored = evidence["g004-liquid-scenario-series"]
+    milestones = evidence["g004-funding-milestones"]
+
+    assert isinstance(baseline, TimelineEvidence)
+    assert isinstance(explored, TimelineEvidence)
+    assert len(baseline.points) == len(explored.points)
+    assert baseline.points[-1].value == Decimal("4344368.266927997250165882396")
+    assert explored.points[-1].value == Decimal("2927641.022946419129284394956")
+    assert _comparison(workspace.evidence, "g004-final-worth").scenario_value == Decimal(
+        "4413924.629759393112014262271"
+    )
+    assert isinstance(milestones, TableEvidence)
+    assert (
+        "Private-pension income begins",
+        2032,
+        "Reduces the remaining spending gap",
+    ) in milestones.rows
+    assert ("State Pension begins", 2038, "Adds another recurring-income source") in milestones.rows
+
+
+def test_higher_spending_funding_order_is_explicit_and_evidence_scoped() -> None:
+    workspace = _service().higher_spending(Decimal("100000"))
+    funding = next(item for item in workspace.evidence if item.evidence_id == "g004-funding-order")
+
+    assert isinstance(funding, AssumptionEvidence)
+    assert funding.value == "Cash, then taxable investments, then retained employer equity"
+    assert set(workspace.evidence[0].citations) == {  # type: ignore[union-attr]
+        "g004-spending",
+        "g004-liquid",
+    }
+
+
 def test_temporary_multi_year_spending_is_an_explicit_limitation() -> None:
     workspace = _service().higher_spending(Decimal("100000"), temporary_years=5)
 
@@ -408,6 +474,42 @@ def test_cash_decline_uses_existing_statement_and_trace_for_selected_year() -> N
     assert statement.closing_cash == expected.assets.trace.closing_cash
     assert statement.liquid_assets == expected.liquid_assets
     assert statement.net_worth == expected.net_worth
+
+
+def test_cash_bridge_reconciles_direct_movements_for_pre_retirement_and_retirement() -> None:
+    for year in (2027, 2032):
+        workspace = _service().cash_decline(year)
+        statement = next(
+            item for item in workspace.evidence if isinstance(item, FinancialStatementEvidence)
+        )
+        increases = sum((value for _, value in statement.cash_increases), Decimal("0"))
+        decreases = sum((value for _, value in statement.cash_decreases), Decimal("0"))
+
+        assert statement.opening_cash + increases - decreases == statement.closing_cash
+
+
+def test_cash_selected_year_refreshes_all_causal_evidence() -> None:
+    service = _service()
+    purchase_year = service.cash_decline(2027)
+    retirement_year = service.cash_decline(2032)
+    purchase_statement = next(
+        item for item in purchase_year.evidence if isinstance(item, FinancialStatementEvidence)
+    )
+    retirement_statement = next(
+        item for item in retirement_year.evidence if isinstance(item, FinancialStatementEvidence)
+    )
+
+    assert purchase_year.title == "What changed my cash in 2027?"
+    assert "cash rises" in purchase_year.evidence[0].text.casefold()  # type: ignore[union-attr]
+    assert "pre-retirement" in purchase_year.evidence[0].text.casefold()  # type: ignore[union-attr]
+    assert dict(purchase_statement.cash_decreases)["Property purchase"] == Decimal("200000")
+    assert retirement_year.title == "What changed my cash in 2032?"
+    assert "cash falls" in retirement_year.evidence[0].text.casefold()  # type: ignore[union-attr]
+    assert dict(retirement_statement.cash_decreases)["Cash used for spending"] == Decimal(
+        "51709.0555320018444800"
+    )
+    assert retirement_statement.opening_cash == Decimal("1826630.7781896000000")
+    assert retirement_statement.closing_cash == Decimal("1774921.7226575981555200")
 
 
 @pytest.mark.parametrize(
@@ -523,7 +625,7 @@ def test_normal_streamlit_experience_hides_engineering_modes_and_provenance() ->
         "recovery",
     )
     assert all(term not in rendered for term in forbidden)
-    assert "Why does my cash decline after retirement?" in rendered
+    assert "What changed my cash in 2032?" in rendered
     assert {item.label for item in app.expander} == {"About this projection"}
 
 

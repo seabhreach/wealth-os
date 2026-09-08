@@ -351,7 +351,7 @@ def test_all_five_streamlit_journeys_render_without_duplicate_keys(goal_id: Goal
         GoalId.INVESTMENT_PROPERTY: "Should I buy another property?",
         GoalId.EMPLOYER_EQUITY: "How dependent am I on my employer shares?",
         GoalId.HIGHER_SPENDING: "Can I spend more in retirement?",
-        GoalId.CASH_DECLINE: "Why does my cash decline after retirement?",
+        GoalId.CASH_DECLINE: "What changed my cash in 2032?",
     }[goal_id] in rendered
 
 
@@ -479,6 +479,14 @@ def test_visual_tokens_keep_inputs_and_chips_readable_in_both_themes() -> None:
     assert LIGHT_INPUT_FOREGROUND != DARK_INPUT_FOREGROUND
     assert 'button[kind="tertiary"]' in EXPERIENCE_CSS
     assert "focus-visible" in EXPERIENCE_CSS
+
+
+def test_workspace_css_uses_resolved_theme_tokens_for_visible_visual_fills() -> None:
+    assert "@media (prefers-color-scheme: dark)" in EXPERIENCE_CSS
+    assert LIGHT_THEME_TOKENS["focus_outline"] in EXPERIENCE_CSS
+    assert DARK_THEME_TOKENS["focus_outline"] in EXPERIENCE_CSS
+    assert "var(--background-color)" not in EXPERIENCE_CSS
+    assert "var(--primary-color)" not in EXPERIENCE_CSS
 
 
 @pytest.mark.parametrize("tokens", [LIGHT_THEME_TOKENS, DARK_THEME_TOKENS])

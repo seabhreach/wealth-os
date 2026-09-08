@@ -62,24 +62,47 @@ def pane_order_for_width(width: int) -> tuple[str, ...]:
 EXPERIENCE_CSS = f"""
 <style>
 :root {{
-  --wos-page-bg: var(--background-color);
-  --wos-ink: var(--text-color);
-  --wos-secondary: color-mix(in srgb, var(--text-color) 78%, var(--background-color));
-  --wos-muted: color-mix(in srgb, var(--text-color) 64%, var(--background-color));
-  --wos-soft: var(--secondary-background-color);
-  --wos-raised: color-mix(in srgb, var(--secondary-background-color) 88%, var(--background-color));
-  --wos-accent-soft: color-mix(in srgb, var(--primary-color) 13%, var(--background-color));
-  --wos-accent-mid: color-mix(in srgb, var(--primary-color) 30%, var(--background-color));
-  --wos-positive-soft: color-mix(in srgb, #2f8f6b 16%, var(--background-color));
-  --wos-caution-soft: color-mix(in srgb, #b7791f 15%, var(--background-color));
-  --wos-line: color-mix(in srgb, var(--text-color) 22%, var(--background-color));
-  --wos-accent: var(--primary-color);
-  --wos-input-fg: var(--text-color);
-  --wos-input-bg: var(--secondary-background-color);
-  --wos-placeholder: color-mix(in srgb, var(--text-color) 62%, var(--background-color));
-  --wos-chip-fg: var(--text-color);
-  --wos-chip-bg: var(--secondary-background-color);
-  --wos-disabled: color-mix(in srgb, var(--text-color) 42%, var(--background-color));
+  --wos-page-bg: {LIGHT_THEME_TOKENS["page_background"]};
+  --wos-ink: {LIGHT_THEME_TOKENS["primary_text"]};
+  --wos-secondary: {LIGHT_THEME_TOKENS["secondary_text"]};
+  --wos-muted: {LIGHT_THEME_TOKENS["muted_text"]};
+  --wos-soft: {LIGHT_THEME_TOKENS["surface_background"]};
+  --wos-raised: color-mix(in srgb, {LIGHT_THEME_TOKENS["surface_background"]} 88%, {LIGHT_THEME_TOKENS["page_background"]});
+  --wos-accent-soft: color-mix(in srgb, {LIGHT_THEME_TOKENS["focus_outline"]} 13%, {LIGHT_THEME_TOKENS["page_background"]});
+  --wos-accent-mid: color-mix(in srgb, {LIGHT_THEME_TOKENS["focus_outline"]} 30%, {LIGHT_THEME_TOKENS["page_background"]});
+  --wos-positive-soft: color-mix(in srgb, #2f8f6b 16%, {LIGHT_THEME_TOKENS["page_background"]});
+  --wos-caution-soft: color-mix(in srgb, #b7791f 15%, {LIGHT_THEME_TOKENS["page_background"]});
+  --wos-line: {LIGHT_THEME_TOKENS["subtle_border"]};
+  --wos-accent: {LIGHT_THEME_TOKENS["focus_outline"]};
+  --wos-input-fg: {LIGHT_THEME_TOKENS["input_text"]};
+  --wos-input-bg: {LIGHT_THEME_TOKENS["input_background"]};
+  --wos-placeholder: {LIGHT_THEME_TOKENS["placeholder_text"]};
+  --wos-chip-fg: {LIGHT_THEME_TOKENS["chip_text"]};
+  --wos-chip-bg: {LIGHT_THEME_TOKENS["chip_background"]};
+  --wos-disabled: {LIGHT_THEME_TOKENS["disabled_text"]};
+}}
+
+@media (prefers-color-scheme: dark) {{
+  :root {{
+    --wos-page-bg: {DARK_THEME_TOKENS["page_background"]};
+    --wos-ink: {DARK_THEME_TOKENS["primary_text"]};
+    --wos-secondary: {DARK_THEME_TOKENS["secondary_text"]};
+    --wos-muted: {DARK_THEME_TOKENS["muted_text"]};
+    --wos-soft: {DARK_THEME_TOKENS["surface_background"]};
+    --wos-raised: color-mix(in srgb, {DARK_THEME_TOKENS["surface_background"]} 88%, {DARK_THEME_TOKENS["page_background"]});
+    --wos-accent-soft: color-mix(in srgb, {DARK_THEME_TOKENS["focus_outline"]} 13%, {DARK_THEME_TOKENS["page_background"]});
+    --wos-accent-mid: color-mix(in srgb, {DARK_THEME_TOKENS["focus_outline"]} 30%, {DARK_THEME_TOKENS["page_background"]});
+    --wos-positive-soft: color-mix(in srgb, #2f8f6b 16%, {DARK_THEME_TOKENS["page_background"]});
+    --wos-caution-soft: color-mix(in srgb, #b7791f 15%, {DARK_THEME_TOKENS["page_background"]});
+    --wos-line: {DARK_THEME_TOKENS["subtle_border"]};
+    --wos-accent: {DARK_THEME_TOKENS["focus_outline"]};
+    --wos-input-fg: {DARK_THEME_TOKENS["input_text"]};
+    --wos-input-bg: {DARK_THEME_TOKENS["input_background"]};
+    --wos-placeholder: {DARK_THEME_TOKENS["placeholder_text"]};
+    --wos-chip-fg: {DARK_THEME_TOKENS["chip_text"]};
+    --wos-chip-bg: {DARK_THEME_TOKENS["chip_background"]};
+    --wos-disabled: {DARK_THEME_TOKENS["disabled_text"]};
+  }}
 }}
 
 .stApp {{ color: var(--wos-ink); background: var(--wos-page-bg); }}
@@ -148,7 +171,7 @@ EXPERIENCE_CSS = f"""
 
 .wos-g002-workspace {{ max-width: 1280px; margin: 1rem auto 0; }}
 .wos-g002-title {{ color: var(--wos-ink); font-size: clamp(2.5rem, 5vw, 4.6rem); line-height: 1.02; letter-spacing: -0.055em; margin: 0.7rem 0 1.4rem; max-width: 960px; }}
-.wos-g002-hero {{ box-sizing: border-box; width: 100%; max-width: 100%; padding: clamp(1.5rem, 3vw, 2.6rem); border-radius: 1.3rem; background: var(--wos-positive-soft); border: 1px solid color-mix(in srgb, #2f8f6b 38%, var(--background-color)); }}
+.wos-g002-hero {{ box-sizing: border-box; width: 100%; max-width: 100%; padding: clamp(1.5rem, 3vw, 2.6rem); border-radius: 1.3rem; background: var(--wos-positive-soft); border: 1px solid color-mix(in srgb, #2f8f6b 38%, var(--wos-page-bg)); }}
 .wos-g002-hero > span {{ color: var(--wos-accent); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }}
 .wos-g002-hero h2 {{ color: var(--wos-ink); font-size: clamp(1.6rem, 3vw, 2.75rem); line-height: 1.18; letter-spacing: -0.035em; max-width: 900px; overflow-wrap: break-word; margin: 0.75rem 0; }}
 .wos-g002-hero p {{ color: var(--wos-secondary); line-height: 1.6; max-width: 950px; margin: 0; }}
@@ -164,6 +187,43 @@ EXPERIENCE_CSS = f"""
 .wos-limit-panel > div {{ padding: 1.35rem; background: var(--wos-raised); }}
 .wos-limit-panel h3 {{ color: var(--wos-ink); font-size: 1rem; margin: 0.5rem 0; }}
 .wos-limit-panel p {{ color: var(--wos-muted); font-size: 0.86rem; line-height: 1.55; margin: 0; }}
+
+.wos-decision-workspace {{ max-width: 1280px; margin: 1rem auto 0; }}
+.wos-decision-title {{ color: var(--wos-ink); font-size: clamp(2.5rem, 5vw, 4.6rem); line-height: 1.02; letter-spacing: -0.055em; margin: 0.7rem 0 1.4rem; max-width: 980px; }}
+.wos-decision-hero {{ box-sizing: border-box; width: 100%; padding: clamp(1.5rem, 3vw, 2.6rem); border: 1px solid var(--wos-accent-mid); border-radius: 1.3rem; background: var(--wos-accent-soft); }}
+.wos-decision-hero > span {{ color: var(--wos-accent); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }}
+.wos-decision-hero h2 {{ color: var(--wos-ink); font-size: clamp(1.6rem, 3vw, 2.75rem); line-height: 1.18; letter-spacing: -0.035em; max-width: 950px; margin: 0.75rem 0; }}
+.wos-decision-hero p {{ color: var(--wos-secondary); line-height: 1.6; max-width: 980px; margin: 0; }}
+.wos-two-metric-grid, .wos-three-metric-grid, .wos-four-metric-grid {{ display: grid; gap: 1rem; margin: 1.2rem 0 1rem; }}
+.wos-two-metric-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+.wos-three-metric-grid {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
+.wos-four-metric-grid {{ grid-template-columns: repeat(4, minmax(0, 1fr)); }}
+.wos-concentration-visual {{ display: grid; gap: 1rem; margin: 1.4rem 0; }}
+.wos-concentration-row {{ display: grid; grid-template-columns: minmax(11rem, 0.7fr) minmax(0, 2fr); gap: 1.4rem; align-items: center; padding: 1.2rem 1.35rem; border: 1px solid var(--wos-line); border-radius: 1rem; background: var(--wos-raised); }}
+.wos-concentration-row > div:first-child {{ display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }}
+.wos-concentration-row span {{ color: var(--wos-muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }}
+.wos-concentration-row strong {{ color: var(--wos-ink); font-size: 1.45rem; }}
+.wos-concentration-track {{ height: 1.25rem; overflow: hidden; border-radius: 999px; background: var(--wos-soft); border: 1px solid var(--wos-line); }}
+.wos-concentration-track i {{ display: block; height: 100%; min-width: 0.35rem; border-radius: inherit; background: var(--wos-accent); }}
+.wos-definition-panel {{ display: grid; grid-template-columns: 1.35fr 1fr; gap: 2rem; align-items: center; padding: 1.4rem; border-radius: 1rem; background: var(--wos-raised); border: 1px solid var(--wos-line); }}
+.wos-definition-panel > div > span {{ color: var(--wos-accent); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }}
+.wos-definition-panel h3 {{ color: var(--wos-ink); margin: 0.45rem 0; }}
+.wos-definition-panel p {{ color: var(--wos-muted); line-height: 1.5; margin: 0; }}
+.wos-decision-flow {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; margin-top: 1.4rem; }}
+.wos-flow-step, .wos-cash-step {{ box-sizing: border-box; min-width: 0; padding: 1.2rem; border: 1px solid var(--wos-line); border-radius: 1rem; background: var(--wos-raised); }}
+.wos-flow-step h3, .wos-cash-step h3, .wos-milestone-card h3 {{ color: var(--wos-muted); font-size: 0.78rem; line-height: 1.35; margin: 0.8rem 0 0.5rem; }}
+.wos-flow-step strong, .wos-cash-step strong {{ display: block; color: var(--wos-ink); font-size: clamp(1rem, 1.6vw, 1.35rem); line-height: 1.3; overflow-wrap: anywhere; }}
+.wos-flow-step p, .wos-milestone-card p {{ color: var(--wos-muted); font-size: 0.75rem; line-height: 1.45; margin: 0.75rem 0 0; }}
+.wos-milestone-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.8rem; }}
+.wos-milestone-card {{ padding: 1rem 1.1rem; border-left: 2px solid var(--wos-line); background: color-mix(in srgb, var(--wos-raised) 78%, transparent); }}
+.wos-milestone-card > span {{ color: var(--wos-accent); font-size: 0.76rem; font-weight: 700; }}
+.wos-selected-milestone {{ border-left-color: var(--wos-accent); background: var(--wos-accent-soft); }}
+.wos-cash-bridge {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.75rem; margin: 1.4rem 0; }}
+.wos-cash-step > span {{ color: var(--wos-accent); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }}
+.wos-context-grid {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--wos-line); border-radius: 1rem; background: var(--wos-line); }}
+.wos-context-cell {{ min-width: 0; padding: 1rem; background: var(--wos-raised); }}
+.wos-context-cell span {{ display: block; color: var(--wos-muted); font-size: 0.72rem; min-height: 2rem; }}
+.wos-context-cell strong {{ display: block; color: var(--wos-ink); font-size: 1rem; margin-top: 0.5rem; overflow-wrap: anywhere; }}
 
 .wos-home {{ max-width: 760px; margin: 8vh auto 0; }}
 .wos-wordmark {{ font-size: 0.82rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wos-muted); }}
@@ -244,6 +304,7 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-picture-metric-grid, .wos-assumption-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .wos-causal-bridge {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
   .wos-bridge-step:not(:last-child)::after {{ content: none; }}
+  .wos-four-metric-grid, .wos-decision-flow {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
 }}
 
 @media (max-width: {RESPONSIVE_BREAKPOINT_PX}px) {{
@@ -262,6 +323,9 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-causal-bridge {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
   .wos-bridge-step:not(:last-child)::after {{ content: none; }}
   .wos-limit-panel {{ grid-template-columns: 1fr; }}
+  .wos-decision-workspace {{ max-width: 100%; }}
+  .wos-three-metric-grid, .wos-context-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+  .wos-concentration-row, .wos-definition-panel {{ grid-template-columns: 1fr; }}
   .wos-tradeoff-grid {{ grid-template-columns: 1fr; gap: 0.8rem; }}
   .wos-timeline {{ grid-template-columns: 1fr; }}
   .wos-milestone {{ border-top: 0; border-left: 2px solid var(--wos-line); padding: 0 0 1.5rem 1.2rem; min-height: 0; }}
@@ -283,6 +347,8 @@ div[data-testid="stButton"] > button:focus-visible, div[data-testid="stChatInput
   .wos-boundary-planning, .wos-mini-grid, .wos-residence-boundary {{ grid-template-columns: 1fr; }}
   .wos-boundary-planning > div {{ border-right: 0; border-bottom: 1px solid var(--wos-accent-mid); padding: 0 0 0.7rem; }}
   .wos-residence-boundary {{ gap: 1.2rem; }}
+  .wos-two-metric-grid, .wos-three-metric-grid, .wos-four-metric-grid, .wos-decision-flow, .wos-context-grid {{ grid-template-columns: 1fr; }}
+  .wos-concentration-row > div:first-child {{ align-items: center; }}
 }}
 </style>
 """

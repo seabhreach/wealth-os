@@ -6,6 +6,7 @@ from __future__ import annotations
 from decimal import Decimal
 from pathlib import Path
 
+from engine.config import WealthOsConfig
 from engine.reporting import (
     AdvisorScenario,
     AnnualFinancialStatement,
@@ -594,6 +595,8 @@ class LiveExperienceService:
             config,
             AdvisorScenario("Retain", ScenarioOverride(sell_on_vest=False)),
         )
+        sell_peak = max(sell.projection, key=lambda year: year.amazon_concentration)
+        retain_peak = max(retain.projection, key=lambda year: year.amazon_concentration)
         focus = "sell on vest" if focus_sell_on_vest else "retain"
         overrides = (("sell_on_vest", str(focus_sell_on_vest).lower()),)
         evidence: tuple[LiveEvidence, ...] = (
@@ -663,14 +666,58 @@ class LiveExperienceService:
                 retain.metrics.final_net_worth,
                 "EUR",
             ),
+            ComparisonEvidence(
+                "g003-denominator-value",
+                "Investable assets at peak concentration",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Concentration denominator at each path's peak",
+                "Sell on vest",
+                sell_peak.liquid_assets,
+                "Retain",
+                retain_peak.liquid_assets,
+                "EUR",
+            ),
+            ComparisonEvidence(
+                "g003-peak-year",
+                "Peak-concentration year",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                "Year of maximum employer-equity concentration",
+                "Sell on vest",
+                sell_peak.calendar_year,
+                "Retain",
+                retain_peak.calendar_year,
+                "calendar year",
+            ),
             AssumptionEvidence(
                 "g003-denominator",
                 "Concentration definition",
                 EvidencePurpose.ASSUMPTION,
                 LIVE,
                 "Denominator",
-                "Net worth used by the current projection",
-                "Current comparison metric",
+                "Cash + taxable investments + employer equity",
+                "RFC-010 investable-assets definition",
+                KNOWN,
+            ),
+            AssumptionEvidence(
+                "g003-growth",
+                "Employer-equity growth",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Annual employer-equity growth",
+                config.amazon_rsus.annual_growth_rate,
+                "Configured employer-equity assumption",
+                KNOWN,
+            ),
+            AssumptionEvidence(
+                "g003-policy-behaviour",
+                "Disposal-policy behavior",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Policy comparison",
+                "Sell future awards on vest versus retain future awards",
+                "Existing deterministic scenario behavior",
                 KNOWN,
             ),
             StrategyEvidence(
@@ -757,7 +804,7 @@ class LiveExperienceService:
                 "Answer",
                 EvidencePurpose.ANSWER,
                 LIVE,
-                _spending_answer(scenario),
+                _spending_answer(baseline, scenario),
                 ("g004-spending", "g004-liquid"),
             ),
             ComparisonEvidence(
@@ -780,6 +827,36 @@ class LiveExperienceService:
                 "Explored annual spending in today's money",
                 target,
                 "Temporary scenario input before annual inflation",
+                KNOWN,
+            ),
+            AssumptionEvidence(
+                "g004-inflation",
+                "Spending inflation",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Annual inflation",
+                self._baseline.configuration.assumptions.inflation_rate,
+                "Configured planning assumption",
+                KNOWN,
+            ),
+            AssumptionEvidence(
+                "g004-retirement-age",
+                "Retirement timing",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Planned retirement age",
+                self._baseline.configuration.household.planned_retirement_age,
+                "Financial Picture",
+                KNOWN,
+            ),
+            AssumptionEvidence(
+                "g004-funding-order",
+                "Funding order",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Liquid funding sequence",
+                "Cash, then taxable investments, then retained employer equity",
+                "Existing deterministic projection policy",
                 KNOWN,
             ),
             TimelineEvidence(
@@ -832,6 +909,15 @@ class LiveExperienceService:
                 "First unfunded year",
                 scenario.metrics.first_unfunded_year or "None",
                 "calendar year",
+            ),
+            TableEvidence(
+                "g004-funding-milestones",
+                "Funding milestones",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                ("Event", "First modelled year", "Role in the funding path"),
+                _spending_milestone_rows(scenario),
+                "Milestones are selected from the completed higher-spending projection.",
             ),
             StrategyEvidence(
                 "g004-strategy",
@@ -905,6 +991,15 @@ class LiveExperienceService:
                     ),
                     ("Cash used for spending", trace.cash_withdrawal),
                 ),
+                (
+                    ("Annual saving", trace.annual_savings),
+                    ("Employer-equity sale proceeds", trace.rsu_sale_proceeds),
+                    ("After-tax recurring-income surplus", trace.after_tax_surplus),
+                ),
+                (
+                    ("Property purchase", trace.property_purchase_cost),
+                    ("Cash used for spending", trace.cash_withdrawal),
+                ),
                 trace.closing_cash,
                 statement.liquid_assets,
                 statement.net_worth,
@@ -933,6 +1028,45 @@ class LiveExperienceService:
                 next(year.calendar_year for year in projection if not year.employed),
                 "calendar year",
                 f"Age {self._baseline.configuration.household.planned_retirement_age}",
+            ),
+            AssumptionEvidence(
+                "g005-selected-year",
+                "Selected reporting year",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Year inspected",
+                calendar_year,
+                "Temporary workspace selection",
+                KNOWN,
+            ),
+            AssumptionEvidence(
+                "g005-cash-return",
+                "Cash return",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Cash growth in the current projection",
+                "No cash return modelled",
+                "Existing deterministic projection treatment",
+                KNOWN,
+            ),
+            AssumptionEvidence(
+                "g005-funding-order",
+                "Funding order",
+                EvidencePurpose.ASSUMPTION,
+                LIVE,
+                "Liquid funding sequence",
+                "Cash, then taxable investments, then retained employer equity",
+                "Existing deterministic projection policy",
+                KNOWN,
+            ),
+            TableEvidence(
+                "g005-milestones",
+                "Plan milestones",
+                EvidencePurpose.EXPLANATION,
+                LIVE,
+                ("Event", "First modelled year", "Meaning"),
+                _cash_milestone_rows(self._baseline_result, self._baseline.configuration),
+                "Events are selected from the completed baseline projection.",
             ),
             TableEvidence(
                 "g005-funding",
@@ -974,7 +1108,7 @@ class LiveExperienceService:
         )
         return self._workspace(
             GoalId.CASH_DECLINE,
-            "Why does my cash decline after retirement?",
+            f"What changed my cash in {calendar_year}?",
             evidence,
             overrides,
             statement,
@@ -1200,11 +1334,111 @@ def _retirement_explanation(result: ScenarioResult) -> str:
     return " ".join(sentences)
 
 
-def _spending_answer(result: ScenarioResult) -> str:
+def _spending_milestone_rows(
+    result: ScenarioResult,
+) -> tuple[tuple[str | int | Decimal | bool | None, ...], ...]:
+    retirement = next(year for year in result.projection if not year.employed)
+    private_pension = next(
+        (year for year in result.projection if year.private_pension_income > 0),
+        None,
+    )
+    state_pension = next(
+        (year for year in result.projection if year.state_pension_income > 0),
+        None,
+    )
+    taxable_sales = next(
+        (year for year in result.projection if year.taxable_investment_withdrawal > 0),
+        None,
+    )
+    return (
+        (
+            "Retirement spending begins",
+            retirement.calendar_year,
+            "Recurring income and liquid assets begin funding the target",
+        ),
+        (
+            "Private-pension income begins",
+            private_pension.calendar_year if private_pension else "Not within horizon",
+            "Reduces the remaining spending gap",
+        ),
+        (
+            "State Pension begins",
+            state_pension.calendar_year if state_pension else "Not within horizon",
+            "Adds another recurring-income source",
+        ),
+        (
+            "Taxable-investment sales begin",
+            taxable_sales.calendar_year if taxable_sales else "Not within horizon",
+            "Used after available cash in the fixed funding order",
+        ),
+    )
+
+
+def _cash_milestone_rows(
+    result: ScenarioResult,
+    configuration: WealthOsConfig,
+) -> tuple[tuple[str | int | Decimal | bool | None, ...], ...]:
+    retirement = next(year for year in result.projection if not year.employed)
+    private_pension = next(
+        (year for year in result.projection if year.private_pension_income > 0),
+        None,
+    )
+    state_pension = next(
+        (year for year in result.projection if year.state_pension_income > 0),
+        None,
+    )
+    taxable_sales = next(
+        (year for year in result.projection if year.taxable_investment_withdrawal > 0),
+        None,
+    )
+    cash_exhaustion = next(
+        (year for year in result.projection if year.cash_balance == Decimal("0")),
+        None,
+    )
+    property_year = min(
+        (item.purchase_year for item in configuration.rental_properties),
+        default=None,
+    )
+    return (
+        (
+            "Planned property purchase",
+            property_year or "Not within horizon",
+            "Cash-funded when the configured purchase occurs",
+        ),
+        ("Retirement begins", retirement.calendar_year, "Employment and annual saving stop"),
+        (
+            "Private-pension income begins",
+            private_pension.calendar_year if private_pension else "Not within horizon",
+            "Reduces the spending gap",
+        ),
+        (
+            "State Pension begins",
+            state_pension.calendar_year if state_pension else "Not within horizon",
+            "Adds recurring income",
+        ),
+        (
+            "Taxable-investment sales begin",
+            taxable_sales.calendar_year if taxable_sales else "Not within horizon",
+            "Begin after cash in the fixed funding order",
+        ),
+        (
+            "Cash reaches zero",
+            cash_exhaustion.calendar_year if cash_exhaustion else "Not within horizon",
+            "No further cash is available for funding",
+        ),
+    )
+
+
+def _spending_answer(baseline: ScenarioResult, result: ScenarioResult) -> str:
     if result.metrics.retirement_ready:
-        return (
-            "The permanent higher-spending scenario remains funded under the current assumptions."
-        )
+        if result.metrics.liquid_assets_at_life_expectancy < (
+            baseline.metrics.liquid_assets_at_life_expectancy
+        ):
+            return (
+                "Higher permanent spending reduces final liquid assets but remains funded "
+                "through the planning horizon under the current assumptions."
+            )
+        return "The explored spending path remains funded under the current assumptions."
     return f"The permanent higher-spending scenario first becomes unfunded in {result.metrics.first_unfunded_year}."
 
 
@@ -1224,6 +1458,7 @@ def _cash_transition_observation(statement: AnnualFinancialStatement) -> str:
 
 def _cash_decline_answer(statement: AnnualFinancialStatement, *, employed: bool) -> str:
     funding = statement.funding
+    trace = statement.assets.trace
     recurring_sources: list[str] = []
     if funding.rental_income > 0:
         recurring_sources.append("rental income")
@@ -1232,11 +1467,32 @@ def _cash_decline_answer(statement: AnnualFinancialStatement, *, employed: bool)
     if funding.state_pension > 0:
         recurring_sources.append("State Pension income")
 
+    if trace.closing_cash > trace.opening_cash:
+        direction = "rises"
+    elif trace.closing_cash < trace.opening_cash:
+        direction = "falls"
+    else:
+        direction = "is unchanged"
+
+    if employed and trace.property_purchase_cost > 0 and direction == "rises":
+        return (
+            f"Cash rises in {statement.calendar_year}: annual saving, employer-equity sale "
+            "proceeds and the after-tax recurring-income surplus exceed the cash used for "
+            "the planned property purchase. This is a pre-retirement year. The bridge "
+            "reconciles opening cash to closing cash."
+        )
+    if employed and trace.property_purchase_cost > 0:
+        return (
+            f"Cash {direction} in {statement.calendar_year}, mainly because the planned "
+            "property purchase uses cash. The annual trace also includes saving, employer-"
+            "equity sale proceeds and any after-tax recurring-income surplus. This is a "
+            "pre-retirement year. The bridge reconciles opening cash to closing cash."
+        )
     if employed:
         return (
-            f"{statement.calendar_year} is pre-retirement. Employment and annual saving are still active, "
-            "so this year is not a retirement-funding year. The annual trace links opening cash, "
-            "income, the planned property purchase and other movements to closing cash."
+            f"Cash {direction} in {statement.calendar_year}. This is a pre-retirement year: "
+            "employment and annual saving are still active, and no retirement spending is "
+            "funded. The bridge reconciles opening cash to closing cash."
         )
     if recurring_sources and funding.cash_used > 0:
         sources = _join_sources(recurring_sources)
@@ -1249,8 +1505,8 @@ def _cash_decline_answer(statement: AnnualFinancialStatement, *, employed: bool)
     else:
         cause = "No cash withdrawal is required for retirement spending in the selected year."
     return (
-        f"In {statement.calendar_year}, {cause} The annual trace links opening cash, "
-        "income, purchases and cash used for spending to closing cash."
+        f"Cash {direction} in {statement.calendar_year}. {cause} "
+        "The bridge reconciles opening cash to closing cash."
     )
 
 

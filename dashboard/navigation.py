@@ -1,7 +1,7 @@
 """Top-level dashboard navigation state and presentation helpers."""
 
 from collections.abc import MutableMapping
-from typing import Literal
+from typing import Literal, cast
 
 from dashboard.state import PAGE_KEY, PENDING_PAGE_KEY
 
@@ -39,7 +39,7 @@ def apply_pending_page(state: MutableMapping[str, object]) -> PageName:
 def _validated_page(page: object, fallback: PageName | None = None) -> PageName:
     """Return a supported page or raise for an invalid requested navigation target."""
     if isinstance(page, str) and page in PAGES:
-        return page
+        return cast(PageName, page)
     if fallback is not None:
         return fallback
     raise ValueError(f"Unsupported Wealth OS page: {page!r}")

@@ -127,6 +127,8 @@ class FinancialStatementEvidence(EvidenceBase):
     opening_cash: Decimal
     inflows: tuple[tuple[str, Decimal], ...]
     outflows: tuple[tuple[str, Decimal], ...]
+    cash_increases: tuple[tuple[str, Decimal], ...]
+    cash_decreases: tuple[tuple[str, Decimal], ...]
     closing_cash: Decimal
     liquid_assets: Decimal
     net_worth: Decimal

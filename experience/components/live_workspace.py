@@ -8,6 +8,11 @@ from html import escape
 import streamlit as st
 
 from experience.components.g002_property_workspace import render_g002_property_workspace
+from experience.components.g003_employer_equity_workspace import (
+    render_employer_equity_workspace,
+)
+from experience.components.g004_spending_workspace import render_spending_workspace
+from experience.components.g005_cash_workspace import render_cash_workspace
 from experience.display import format_display_value, format_table_value
 from experience.live.models import (
     AssumptionEvidence,
@@ -33,6 +38,14 @@ def render_live_workspace(workspace: LiveWorkspace) -> str | None:
         item.evidence_id == "g002-liquid-difference" for item in workspace.evidence
     ):
         return render_g002_property_workspace(workspace)
+    if workspace.goal_id is GoalId.EMPLOYER_EQUITY:
+        return render_employer_equity_workspace(workspace)
+    if workspace.goal_id is GoalId.HIGHER_SPENDING and any(
+        item.evidence_id == "g004-liquid" for item in workspace.evidence
+    ):
+        return render_spending_workspace(workspace)
+    if workspace.goal_id is GoalId.CASH_DECLINE:
+        return render_cash_workspace(workspace)
 
     st.markdown('<main class="wos-interim-workspace">', unsafe_allow_html=True)
     st.markdown('<div class="wos-visual-kicker">Workspace</div>', unsafe_allow_html=True)

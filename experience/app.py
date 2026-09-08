@@ -377,7 +377,7 @@ def _saved_question(goal_id: GoalId) -> str:
         GoalId.INVESTMENT_PROPERTY: "What happens if I buy the investment property?",
         GoalId.EMPLOYER_EQUITY: "How dependent am I on my employer shares?",
         GoalId.HIGHER_SPENDING: "What if I spend more in retirement?",
-        GoalId.CASH_DECLINE: "Why does my cash decline after retirement?",
+        GoalId.CASH_DECLINE: "Why did my cash change in 2032?",
     }[goal_id]
 
 

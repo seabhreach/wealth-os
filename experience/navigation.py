@@ -23,7 +23,7 @@ _SUBTITLES = {
     GoalId.INVESTMENT_PROPERTY: "Planned purchase and liquidity trade-off",
     GoalId.EMPLOYER_EQUITY: "Retain and sell-on-vest illustrations",
     GoalId.HIGHER_SPENDING: "A higher retirement-spending comparison",
-    GoalId.CASH_DECLINE: "Why cash changes after retirement",
+    GoalId.CASH_DECLINE: "Selected-year cash movement explanation",
 }
 
 
