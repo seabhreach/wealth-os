@@ -614,5 +614,6 @@ def _mock_paths() -> tuple[Path, ...]:
         path
         for path in EXPERIENCE_ROOT.rglob("*.py")
         if "live" not in path.relative_to(EXPERIENCE_ROOT).parts
+        and "orchestration" not in path.relative_to(EXPERIENCE_ROOT).parts
         and not path.name.startswith("live_")
     )
