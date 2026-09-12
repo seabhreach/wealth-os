@@ -182,6 +182,117 @@ def test_repeatable_investment_editor_preserves_current_edits_through_collection
     assert configuration.investments.holdings[1].asset_type.value == "INDIVIDUAL_EQUITY"
 
 
+def test_investment_add_edit_remove_survives_navigation_and_rerun() -> None:
+    """Dedicated add drafts and stable holding cards persist through the full UI lifecycle."""
+    app_path = Path(__file__).resolve().parents[1] / "dashboard" / "app.py"
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+    app.radio[0].set_value("Inputs").run(timeout=30)
+
+    add_widget_keys = {
+        str(field.key)
+        for fields in (app.text_input, app.selectbox, app.number_input)
+        for field in fields
+        if str(field.key).startswith("investment_add_")
+    }
+    existing_widget_keys = {
+        str(field.key)
+        for fields in (app.text_input, app.selectbox, app.number_input)
+        for field in fields
+        if str(field.key).startswith("investment_") and "existing-etf" in str(field.key)
+    }
+    assert add_widget_keys.isdisjoint(existing_widget_keys)
+
+    first_draft_name = next(field for field in app.text_input if field.key == "investment_add_name")
+    first_draft_name.set_value("Bitcoin")
+    next(field for field in app.selectbox if field.key == "investment_add_type").set_value(
+        "Cryptoassets"
+    )
+    next(field for field in app.number_input if field.key == "investment_add_value").set_value(
+        50_000.0
+    )
+    next(button for button in app.button if button.label == "Add investment").click().run(
+        timeout=30
+    )
+    bitcoin_name = next(
+        field
+        for field in app.text_input
+        if field.value == "Bitcoin" and str(field.key).startswith("investment_name_")
+    )
+    bitcoin_id = str(bitcoin_name.key).removeprefix("investment_name_")
+    second_draft_name = next(
+        field for field in app.text_input if field.key == "investment_add_name"
+    )
+    assert second_draft_name.key == first_draft_name.key
+    assert second_draft_name.value == ""
+    assert (
+        len([field for field in app.text_input if str(field.key).startswith("investment_name_")])
+        == 2
+    )
+
+    second_draft_name.set_value("Gold")
+    next(field for field in app.selectbox if field.key == "investment_add_type").set_value(
+        "Commodities"
+    )
+    next(field for field in app.number_input if field.key == "investment_add_value").set_value(
+        25_000.0
+    )
+    next(button for button in app.button if button.label == "Add investment").click().run(
+        timeout=30
+    )
+    gold_name = next(
+        field
+        for field in app.text_input
+        if field.value == "Gold" and str(field.key).startswith("investment_name_")
+    )
+    gold_id = str(gold_name.key).removeprefix("investment_name_")
+    assert (
+        len([field for field in app.text_input if str(field.key).startswith("investment_name_")])
+        == 3
+    )
+
+    next(
+        field for field in app.number_input if field.key == f"investment_value_{bitcoin_id}"
+    ).set_value(60_000.0)
+    next(button for button in app.button if button.label == "Run projection").click().run(
+        timeout=30
+    )
+    app.radio[0].set_value("Inputs").run(timeout=30)
+    next(
+        field for field in app.number_input if field.key == "investment_value_existing-etf"
+    ).set_value(320_000.0)
+    next(button for button in app.button if button.label == "Run projection").click().run(
+        timeout=30
+    )
+    app.radio[0].set_value("Inputs").run(timeout=30)
+
+    next(
+        button for button in app.button if button.key == f"remove_investment_{gold_id}"
+    ).click().run(timeout=30)
+    next(button for button in app.button if button.label == "Run projection").click().run(
+        timeout=30
+    )
+    app.radio[0].set_value("Inputs").run(timeout=30)
+    app.run(timeout=30)
+
+    assert not app.exception
+    configuration = app.session_state["wealth_os_configuration"]
+    assert isinstance(configuration, WealthOsConfig)
+    assert [holding.holding_id for holding in configuration.investments.holdings] == [
+        "existing-etf",
+        bitcoin_id,
+    ]
+    assert [holding.name for holding in configuration.investments.holdings] == [
+        "Existing ETF holding",
+        "Bitcoin",
+    ]
+    assert [holding.current_value for holding in configuration.investments.holdings] == [
+        320_000,
+        60_000,
+    ]
+    assert configuration.investments.taxable_investment_value == 380_000
+    assert all(gold_id not in str(field.key) for field in app.text_input)
+
+
 def _configuration() -> WealthOsConfig:
     """Return the repository's validated baseline household configuration."""
     contents = Path("data/example_household.yaml").read_text(encoding="utf-8")

@@ -1,6 +1,7 @@
 """Structured Streamlit inputs for the existing Wealth OS configuration schema."""
 
 from copy import deepcopy
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Literal
 
@@ -26,11 +27,28 @@ from engine.assets import InvestmentAssetType
 from engine.config import ConfigurationError, load_configuration
 from engine.config.models import WealthOsConfig
 
-InvestmentCollectionAction = tuple[Literal["add", "remove"], str | None]
+INVESTMENT_WIDGET_CLEANUP_KEY = "wealth_os_investment_widget_cleanup"
+INVESTMENT_ADD_DRAFT_KEY = "wealth_os_investment_add_draft"
+INVESTMENT_ADD_WIDGET_KEYS = (
+    "investment_add_name",
+    "investment_add_type",
+    "investment_add_value",
+    "investment_add_security_identifier",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class InvestmentCollectionAction:
+    """One stable-ID collection action submitted by the investment editor."""
+
+    kind: Literal["remove"]
+    holding_id: str | None = None
 
 
 def render_inputs_page(form_data: FormData) -> tuple[WealthOsConfig | None, FormData]:
     """Render editable MVP inputs and validate only when the form is submitted."""
+    _clear_investment_widget_state()
+    form_data = _apply_pending_investment_add(form_data)
     st.subheader("Inputs")
     st.caption("Update the plan through this form. Calculations run only after submission.")
     _render_collection_controls(form_data)
@@ -39,14 +57,13 @@ def render_inputs_page(form_data: FormData) -> tuple[WealthOsConfig | None, Form
         submitted_data, investment_action = _render_form_fields(form_data)
         submitted = st.form_submit_button("Run projection", type="primary")
     if investment_action is not None:
-        action, holding_id = investment_action
-        if action == "add":
-            updated_data = add_investment_holding(submitted_data)
-        else:
-            if holding_id is None:
-                raise ValueError("A holding ID is required to remove an investment.")
-            updated_data = remove_investment_holding(submitted_data, holding_id)
+        holding_id = investment_action.holding_id
+        if holding_id is None:
+            raise ValueError("A holding ID is required to remove an investment.")
+        updated_data = remove_investment_holding(submitted_data, holding_id)
+        cleanup_keys = _holding_widget_keys(holding_id)
         st.session_state["wealth_os_form_data"] = updated_data
+        st.session_state[INVESTMENT_WIDGET_CLEANUP_KEY] = cleanup_keys
         st.rerun()
     if not submitted:
         return None, form_data
@@ -305,10 +322,87 @@ def _render_investment_holdings(
                 key=f"remove_investment_{holding_id}",
                 use_container_width=True,
             ):
-                requested_action = ("remove", holding_id)
-    if st.form_submit_button("Add investment", use_container_width=True):
-        requested_action = ("add", None)
+                requested_action = InvestmentCollectionAction("remove", holding_id=holding_id)
+    st.markdown("**Add another investment**")
+    add_left, add_right = st.columns(2)
+    add_left.text_input(
+        "New holding name",
+        value="",
+        key=INVESTMENT_ADD_WIDGET_KEYS[0],
+        placeholder="e.g. Bitcoin",
+    )
+    add_right.selectbox(
+        "New investment type",
+        tuple(labels),
+        index=tuple(labels).index(InvestmentAssetType.OTHER.customer_label),
+        key=INVESTMENT_ADD_WIDGET_KEYS[1],
+    )
+    add_value_column, add_identity_column = st.columns(2)
+    add_value_column.number_input(
+        "New current value (EUR)",
+        min_value=0.0,
+        value=0.0,
+        step=1000.0,
+        key=INVESTMENT_ADD_WIDGET_KEYS[2],
+    )
+    add_identity_column.text_input(
+        "New security identity (optional)",
+        value="",
+        key=INVESTMENT_ADD_WIDGET_KEYS[3],
+    )
+    st.form_submit_button(
+        "Add investment",
+        use_container_width=True,
+        on_click=_capture_and_clear_add_draft,
+    )
     return requested_action
+
+
+def _holding_widget_keys(holding_id: str) -> tuple[str, ...]:
+    """Return every widget key owned by one stable holding identity."""
+    return (
+        f"investment_name_{holding_id}",
+        f"investment_type_{holding_id}",
+        f"investment_value_{holding_id}",
+        f"investment_security_identifier_{holding_id}",
+        f"remove_investment_{holding_id}",
+    )
+
+
+def _capture_and_clear_add_draft() -> None:
+    """Capture submitted add values, then reset their widgets before rerendering."""
+    name_key, type_key, value_key, identity_key = INVESTMENT_ADD_WIDGET_KEYS
+    selected_label = str(st.session_state.get(type_key, InvestmentAssetType.OTHER.customer_label))
+    labels = {asset_type.customer_label: asset_type.value for asset_type in InvestmentAssetType}
+    st.session_state[INVESTMENT_ADD_DRAFT_KEY] = {
+        "name": str(st.session_state.get(name_key, "")).strip() or "New investment",
+        "asset_type": labels[selected_label],
+        "current_value": Decimal(str(st.session_state.get(value_key, 0))),
+        "security_identifier": str(st.session_state.get(identity_key, "")).strip() or None,
+    }
+    st.session_state[name_key] = ""
+    st.session_state[type_key] = InvestmentAssetType.OTHER.customer_label
+    st.session_state[value_key] = 0.0
+    st.session_state[identity_key] = ""
+
+
+def _apply_pending_investment_add(form_data: FormData) -> FormData:
+    """Append a captured add draft before widgets render on the submission rerun."""
+    pending_draft = st.session_state.pop(INVESTMENT_ADD_DRAFT_KEY, None)
+    if not isinstance(pending_draft, dict):
+        return form_data
+    updated_data = add_investment_holding(form_data, pending_draft)
+    st.session_state["wealth_os_form_data"] = updated_data
+    return updated_data
+
+
+def _clear_investment_widget_state() -> None:
+    """Discard action-owned widget state before the next editor render."""
+    cleanup_keys = st.session_state.pop(INVESTMENT_WIDGET_CLEANUP_KEY, ())
+    if isinstance(cleanup_keys, (list, tuple)):
+        for key in cleanup_keys:
+            if isinstance(key, str):
+                st.session_state.pop(key, None)
 
 
 def _render_pensions(form_data: FormData) -> None:

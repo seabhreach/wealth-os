@@ -1,5 +1,6 @@
 """Pure adapters between dashboard form data, validated configuration, and YAML."""
 
+from collections.abc import Mapping
 from copy import deepcopy
 from decimal import Decimal
 from typing import Any
@@ -8,6 +9,7 @@ from uuid import uuid4
 import yaml
 from pydantic import ValidationError
 
+from engine.assets import InvestmentHolding
 from engine.config.models import WealthOsConfig
 
 FormData = dict[str, Any]
@@ -68,8 +70,11 @@ def add_pension(form_data: FormData) -> FormData:
     return updated_data
 
 
-def add_investment_holding(form_data: FormData) -> FormData:
-    """Return form data with one blank ordinary investment holding appended."""
+def add_investment_holding(
+    form_data: FormData,
+    holding_data: Mapping[str, object] | None = None,
+) -> FormData:
+    """Return form data with one new validated ordinary holding appended."""
     updated_data = deepcopy(form_data)
     investments = updated_data["investments"]
     if not isinstance(investments, dict):
@@ -81,27 +86,50 @@ def add_investment_holding(form_data: FormData) -> FormData:
     holding_id = f"investment-{uuid4().hex}"
     while holding_id in existing_ids:
         holding_id = f"investment-{uuid4().hex}"
-    holdings.append(
+    draft = holding_data or {}
+    holding = InvestmentHolding.model_validate(
         {
             "holding_id": holding_id,
-            "name": "New investment",
-            "asset_type": "OTHER",
-            "current_value": Decimal("0"),
-            "security_identifier": None,
+            "name": draft.get("name", "New investment"),
+            "asset_type": draft.get("asset_type", "OTHER"),
+            "current_value": draft.get("current_value", Decimal("0")),
+            "security_identifier": draft.get("security_identifier"),
         }
     )
+    holdings.append(holding.model_dump(mode="python"))
+    return updated_data
+
+
+def update_investment_holding(
+    form_data: FormData,
+    holding_id: str,
+    holding_data: Mapping[str, object],
+) -> FormData:
+    """Replace exactly one validated holding while retaining its stable identity."""
+    updated_data = deepcopy(form_data)
+    holdings = _investment_holdings(updated_data)
+    matching_indices = [
+        index for index, holding in enumerate(holdings) if holding["holding_id"] == holding_id
+    ]
+    if len(matching_indices) != 1:
+        raise ValueError(f"Expected exactly one investment holding with ID {holding_id!r}.")
+    replacement = InvestmentHolding.model_validate(
+        {
+            "holding_id": holding_id,
+            "name": holding_data["name"],
+            "asset_type": holding_data["asset_type"],
+            "current_value": holding_data["current_value"],
+            "security_identifier": holding_data.get("security_identifier"),
+        }
+    )
+    holdings[matching_indices[0]] = replacement.model_dump(mode="python")
     return updated_data
 
 
 def remove_investment_holding(form_data: FormData, holding_id: str) -> FormData:
     """Return form data with exactly one identified investment holding removed."""
     updated_data = deepcopy(form_data)
-    investments = updated_data["investments"]
-    if not isinstance(investments, dict):
-        raise TypeError("investments must be a mapping in dashboard form data")
-    holdings = investments["holdings"]
-    if not isinstance(holdings, list):
-        raise TypeError("investment holdings must be a list in dashboard form data")
+    holdings = _investment_holdings(updated_data)
     matching_indices = [
         index for index, holding in enumerate(holdings) if holding["holding_id"] == holding_id
     ]
@@ -109,6 +137,17 @@ def remove_investment_holding(form_data: FormData, holding_id: str) -> FormData:
         raise ValueError(f"Expected exactly one investment holding with ID {holding_id!r}.")
     holdings.pop(matching_indices[0])
     return updated_data
+
+
+def _investment_holdings(form_data: FormData) -> list[FormData]:
+    """Return the mutable ordinary-investment collection after narrow checks."""
+    investments = form_data["investments"]
+    if not isinstance(investments, dict):
+        raise TypeError("investments must be a mapping in dashboard form data")
+    holdings = investments["holdings"]
+    if not isinstance(holdings, list):
+        raise TypeError("investment holdings must be a list in dashboard form data")
+    return holdings
 
 
 def remove_pension(form_data: FormData, index: int) -> FormData:

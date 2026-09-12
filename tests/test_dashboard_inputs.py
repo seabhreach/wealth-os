@@ -19,6 +19,7 @@ from dashboard.inputs import (
     remove_investment_holding,
     remove_pension,
     remove_rental_property,
+    update_investment_holding,
     validation_error_messages,
 )
 from engine.config import load_configuration
@@ -118,6 +119,108 @@ def test_multiple_same_and_different_investment_types_are_independent() -> None:
     assert len(set(holding_ids)) == 3
     assert [holding.asset_type.value for holding in holdings] == ["ETF", "ETF", "CRYPTOASSET"]
     assert sum((holding.current_value for holding in holdings), Decimal("0")) == Decimal("335000")
+
+
+def test_add_second_and_third_holdings_preserves_existing_records_and_totals() -> None:
+    """Complete add drafts append rather than replacing any canonical holding."""
+    original = configuration_to_form_data(load_configuration(_configuration_text()))
+
+    with_bitcoin = add_investment_holding(
+        original,
+        {
+            "name": "Bitcoin",
+            "asset_type": "CRYPTOASSET",
+            "current_value": Decimal("50000"),
+        },
+    )
+    with_gold = add_investment_holding(
+        with_bitcoin,
+        {
+            "name": "Gold",
+            "asset_type": "COMMODITY",
+            "current_value": Decimal("25000"),
+        },
+    )
+
+    bitcoin_config = form_data_to_configuration(with_bitcoin)
+    gold_config = form_data_to_configuration(with_gold)
+    assert len(bitcoin_config.investments.holdings) == 2
+    assert bitcoin_config.investments.holdings[0].holding_id == "existing-etf"
+    assert bitcoin_config.investments.holdings[0].current_value == Decimal("300000")
+    assert bitcoin_config.investments.holdings[1].name == "Bitcoin"
+    assert len({holding.holding_id for holding in bitcoin_config.investments.holdings}) == 2
+    assert bitcoin_config.investments.taxable_investment_value == Decimal("350000")
+    assert [holding.name for holding in gold_config.investments.holdings] == [
+        "Existing ETF holding",
+        "Bitcoin",
+        "Gold",
+    ]
+    assert gold_config.investments.taxable_investment_value == Decimal("375000")
+
+
+def test_edit_by_stable_id_replaces_only_the_selected_holding() -> None:
+    """Immutable replacements retain identity, siblings, count, and derived totals."""
+    original = configuration_to_form_data(load_configuration(_configuration_text()))
+    with_bitcoin = add_investment_holding(
+        original,
+        {"name": "Bitcoin", "asset_type": "CRYPTOASSET", "current_value": 50_000},
+    )
+    bitcoin_id = str(with_bitcoin["investments"]["holdings"][1]["holding_id"])
+
+    bitcoin_edited = update_investment_holding(
+        with_bitcoin,
+        bitcoin_id,
+        {"name": "Bitcoin", "asset_type": "CRYPTOASSET", "current_value": 60_000},
+    )
+    etf_edited = update_investment_holding(
+        bitcoin_edited,
+        "existing-etf",
+        {"name": "Existing ETF holding", "asset_type": "ETF", "current_value": 320_000},
+    )
+
+    bitcoin_config = form_data_to_configuration(bitcoin_edited)
+    final_config = form_data_to_configuration(etf_edited)
+    assert [holding.current_value for holding in bitcoin_config.investments.holdings] == [
+        Decimal("300000"),
+        Decimal("60000"),
+    ]
+    assert bitcoin_config.investments.holdings[1].holding_id == bitcoin_id
+    assert [holding.holding_id for holding in final_config.investments.holdings] == [
+        "existing-etf",
+        bitcoin_id,
+    ]
+    assert [holding.current_value for holding in final_config.investments.holdings] == [
+        Decimal("320000"),
+        Decimal("60000"),
+    ]
+    assert final_config.investments.taxable_investment_value == Decimal("380000")
+
+
+def test_duplicate_names_are_edited_and_removed_only_by_stable_id() -> None:
+    """Display-name collisions never participate in update or removal identity."""
+    original = configuration_to_form_data(load_configuration(_configuration_text()))
+    first = add_investment_holding(
+        original,
+        {"name": "Same name", "asset_type": "BOND", "current_value": 10_000},
+    )
+    second = add_investment_holding(
+        first,
+        {"name": "Same name", "asset_type": "COMMODITY", "current_value": 20_000},
+    )
+    first_id = str(second["investments"]["holdings"][1]["holding_id"])
+    second_id = str(second["investments"]["holdings"][2]["holding_id"])
+
+    edited = update_investment_holding(
+        second,
+        second_id,
+        {"name": "Same name", "asset_type": "COMMODITY", "current_value": 25_000},
+    )
+    remaining = remove_investment_holding(edited, first_id)
+    holdings = form_data_to_configuration(remaining).investments.holdings
+
+    assert [holding.holding_id for holding in holdings] == ["existing-etf", second_id]
+    assert holdings[1].name == "Same name"
+    assert holdings[1].current_value == Decimal("25000")
 
 
 def test_add_edit_and_remove_preserve_other_holdings_and_stable_ids() -> None:
